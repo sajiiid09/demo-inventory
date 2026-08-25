@@ -10,9 +10,10 @@ services:
       POSTGRES_PASSWORD: microloan
       POSTGRES_DB: microloan
     ports:
-      - "5432:5432"
+      - "5433:5432"   # 5432 is often taken by a local Postgres; 5433 avoids the clash
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # postgres:18+ wants the mount one level up; data lands in a version subdir.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U microloan -d microloan"]
       interval: 5s
