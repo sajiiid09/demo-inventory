@@ -179,3 +179,7 @@ class TestDueDates:
         assert len(rows) == 1
         assert rows[0].seq == 1
         assert rows[0].amount_due == D("30000.00") + D("57.69")  # 30000×0.10×(1/52)
+
+    def test_due_dates_reject_unknown_frequency(self):
+        with pytest.raises(ValueError):
+            due_dates(dt.date(2026, 1, 5), 3, "DAILY")

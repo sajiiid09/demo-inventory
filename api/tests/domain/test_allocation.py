@@ -145,3 +145,9 @@ class TestAllocation:
         rows[0] = snapshot(1, principal_paid=D("4166.67"), interest_paid=D("230.77"))
         plan = allocate(D("4397.44"), rows, D("0.00"), GRACE, START)
         assert [a.seq for a in plan.allocations] == [2]
+
+    def test_allocation_total_property_sums_the_three_ways(self):
+        plan = allocate(D("10000.00"), fresh_loan(24), D("0.00"), GRACE, START)
+        assert [a.total for a in plan.allocations] == [
+            D("4397.44"), D("4397.44"), D("1205.12"),
+        ]
