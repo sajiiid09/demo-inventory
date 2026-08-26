@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import register_handlers
-from app.routers import auth, loans, members, repayments
+from app.routers import auth, dashboard, loans, members, repayments
 
 app = FastAPI(
     title="MicroLoan Demo API",
@@ -28,6 +28,7 @@ app.include_router(auth.router)
 app.include_router(members.router)
 app.include_router(loans.router)
 app.include_router(repayments.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health", tags=["meta"])
