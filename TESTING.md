@@ -3,6 +3,15 @@
 > What is tested, why, and the exact list of cases. This file is a checklist, not an essay.
 > Rules **R1–R6** are defined in [DOMAIN.md](DOMAIN.md) §3.
 
+**As built** (see the deviations note in [PLAN.md](PLAN.md)): the full domain suite below
+is implemented exactly as listed; the API suite implements the rules-focused subset — one
+test per rule R1–R6, both worked examples end to end, the DOMAIN.md §9 allocation case,
+disbursement atomicity, auto-close, the append-only triggers, and the invariants check.
+Tests run synchronously through starlette's `TestClient` against a throwaway
+`microloan_test` database (created, migrated, and dropped-and-recreated per session on
+the same Postgres instance). R5's "not in the future" guard reads `app.clock.today()`,
+which tests monkeypatch — no test ever depends on the real date.
+
 ---
 
 ## 1. Strategy

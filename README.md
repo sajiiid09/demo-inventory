@@ -7,8 +7,8 @@ Built as a trial for a larger project. The goals, in order: **clean code**, **a 
 database**, and **simplicity that can be explained out loud**. Every non-obvious decision has
 a written reason in [docs/DECISIONS.md](docs/DECISIONS.md).
 
-> **Status: design complete, implementation not started.** These documents define what will
-> be built. The build order is in [PLAN.md](PLAN.md).
+> **Status: implemented.** The build followed [PLAN.md](PLAN.md) phase by phase;
+> the deviations from the original plan are recorded at the top of PLAN.md.
 
 ---
 
@@ -25,8 +25,13 @@ a written reason in [docs/DECISIONS.md](docs/DECISIONS.md).
 | Repayment management | Partial payments, multi-installment payments, early settlement |
 | Automatic balance updates | Each payment is allocated to specific installments; outstanding follows |
 | Dashboard | Total members, active loans, total disbursed, total collections, total outstanding |
-| Search and view | Members, loans, and repayments — all searchable, all with detail pages |
+| Search and view | Members, loans, and repayments — all searchable via the API |
 | Role-based login | `ADMIN` / `OFFICER` / `CASHIER`, with real separation of duties |
+
+The web UI is deliberately thin (ADR-017, as amended): login, members list + register,
+loans list + new with live preview, loan detail with role-gated actions, and the five
+dashboard cards. Everything else — repayments browsing, receipts, the audit log, and every
+edge case — is drivable from the API docs at `http://localhost:8000/docs`.
 
 ---
 
@@ -55,7 +60,7 @@ Everything else is machinery around those numbers.
 |---|---|
 | Backend | Python 3.12 · FastAPI · SQLAlchemy 2.0 · Alembic |
 | Database | PostgreSQL 18 |
-| Frontend | Next.js 15 (App Router) · TypeScript · Tailwind · shadcn/ui |
+| Frontend | Next.js 15 (App Router) · TypeScript · Tailwind (plain — no component library) |
 | Tests | pytest |
 | Local run | Docker Compose |
 
@@ -82,7 +87,7 @@ docker compose exec api python seed.py
 |---|---|
 | Web app | http://localhost:3000 |
 | API docs (Swagger) | http://localhost:8000/docs |
-| Postgres | `localhost:5432`, database `microloan` |
+| Postgres | `localhost:5433` (5432 is left free for any local Postgres), database `microloan` |
 
 ### Demo logins
 
@@ -102,6 +107,17 @@ pytest tests/domain -q     # the arithmetic — fast, no database needed
 pytest -q                  # everything, including API integration tests
 ```
 
+The API suite creates and migrates a throwaway `microloan_test` database once per
+session (on the same Postgres instance), then builds its own data through the API.
+
+### Verifying the books balance
+
+```bash
+docker compose exec -T postgres psql -U microloan -d microloan -f - < api/scripts/check_invariants.sql
+```
+
+Every violations count must be `0`.
+
 ---
 
 ## What to look at first
@@ -115,6 +131,8 @@ pytest -q                  # everything, including API integration tests
    loan per member, and the triggers that make the payment ledger physically append-only.
 4. **[DOMAIN.md](DOMAIN.md) §6** — a 100,000.00 BDT loan over 24 weekly installments,
    worked out to the paisa.
+5. **`api/seed.py`** — loans in every status, built through the real services, from fixed
+   dates, so the demo looks the same every run.
 
 ---
 

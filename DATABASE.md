@@ -61,7 +61,9 @@ Staff accounts. There is no self-registration — users are seeded or created by
 | `created_by` | `uuid` | no | → `users.id` |
 | `created_at` | `timestamptz` | no | default `now()` |
 
-Indexes: `members_full_name_trgm` and `members_phone_idx` to keep search fast.
+Index on names for search: `members_full_name_trgm` (a trigram GIN index, via the
+`pg_trgm` extension, created in migration `0001_init`). Phone search rides the unique
+constraint's own index — a separate `members_phone_idx` would be redundant.
 
 ### 2.3 `loans`
 

@@ -23,7 +23,7 @@ thin, server-rendered view over that API; and every money calculation lives in a
 | Migrations | Alembic | 1.13+ |
 | Database | PostgreSQL | 18 |
 | Frontend | Next.js App Router + TypeScript | 15 |
-| Styling | Tailwind CSS + shadcn/ui | — |
+| Styling | Tailwind CSS (plain — no component library; ADR-017 as amended) | — |
 | Validation | Pydantic v2 (request/response schemas) | 2.x |
 | Password hashing | argon2 (`argon2-cffi`) | — |
 | Tests | pytest + httpx `AsyncClient` | — |
@@ -192,16 +192,22 @@ web/
   app/
     login/               the only public page
     (app)/
-      layout.tsx         nav shell, current user, role-aware menu
+      layout.tsx         nav shell, current user, sign-out
       dashboard/         5 metric cards
-      members/           table + search      members/[id]/    detail + loan history
+      members/           table + search      members/new/    registration form
       loans/             table + status filter
-                         loans/[id]/         schedule, ledger, action buttons
-      repayments/        table + search      repayments/[id]/ receipt with allocations
-  components/ui/         shadcn/ui primitives
+                         loans/new/         form + live schedule preview
+                         loans/[id]/        schedule, role-gated actions
+                                                (approve / reject / disburse / record repayment)
+  components/            loan-form.tsx (the one client component with live preview)
   lib/api.ts             single typed fetch wrapper — the ONLY place that knows the API URL
-  lib/format.ts          money and date formatting (BDT, 2 decimals, always)
+  lib/actions.ts         server actions — every write, one error path
+  lib/format.ts          money formatting (2 decimals, always)
 ```
+
+Deliberately thin (ADR-017, as amended): no member-detail page, no repayments browser,
+no audit-log UI — the API docs at :8000/docs cover those. Repayment browsing, receipts,
+and the audit log remain fully available through the API.
 
 Every network call goes through `lib/api.ts`. There is no `fetch()` scattered through
 components, so error handling, cookie forwarding, and the base URL each exist in one place.
