@@ -403,12 +403,20 @@ only deactivated, so history stays intact.
 **Context.** The brief asks for a dashboard, lists, search, and detail views. How much design
 effort they deserve is a choice.
 
-**Decision.** Next.js App Router with Server Components for reads, Tailwind and shadcn/ui for
-a clean default look, and no custom design work. Tables, forms, detail pages, five metric
-cards.
+**Decision.** Next.js App Router with Server Components for reads, Server Actions for
+writes, and plain Tailwind for a clean default look. **As built (amended during
+implementation):** no shadcn/ui, and a deliberately thin page set — login, members
+list + register, loans list + new with live preview, loan detail with role-gated
+actions, and the dashboard. Member detail, repayments browsing/receipts, and the
+audit-log UI are API-only (Swagger covers them).
 
 **Rejected — adding charts to the dashboard.** More impressive on screen, but a chart library
 and a trend query in exchange for information the five numbers already carry.
+
+**Rejected — shadcn/ui primitives.** Attractive defaults and fast assembly, but a component
+library's conventions are one more thing to explain, and this demo's frontend exists only
+to prove the engine is clickable. Plain Tailwind tables, forms, and cards are fully legible
+as code.
 
 **Rejected — an unstyled, minimal UI.** Would concentrate all the effort on the backend, but
 the person being shown this needs to click through a flow that looks finished.
@@ -416,6 +424,7 @@ the person being shown this needs to click through a flow that looks finished.
 **Consequences.** The UI stays legible as code, which matters because the point of the demo
 is the domain logic underneath it. Every network call goes through one typed wrapper
 (`web/lib/api.ts`), so the base URL, cookie forwarding, and error handling each exist in
-exactly one place. No frontend tests — recorded as a non-goal in
+exactly one place, and every write goes through one server-actions module with a single
+error path. No frontend tests — recorded as a non-goal in
 [ARCHITECTURE.md](../ARCHITECTURE.md) §8, and the reason the API suite covers the rules
 directly.

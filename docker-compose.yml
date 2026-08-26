@@ -1,0 +1,54 @@
+# MicroLoan Demo — Postgres + API + Web, one command.
+# Demo start:   docker compose up
+# Dev shortcut: docker compose up -d postgres   (run api/web natively instead)
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: microloan
+      POSTGRES_PASSWORD: microloan
+      POSTGRES_DB: microloan
+    ports:
+      - "5433:5432"   # 5432 is often taken by a local Postgres; 5433 avoids the clash
+    volumes:
+      # postgres:18+ wants the mount one level up; data lands in a version subdir.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U microloan -d microloan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql+psycopg://microloan:microloan@postgres:5432/microloan
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./api:/srv
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    environment:
+      API_BASE_URL: http://api:8000          # server-side fetches (Next.js → api container)
+      NEXT_PUBLIC_API_URL: http://localhost:8000  # browser fetches (preview widget)
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/srv
+      - /srv/node_modules
+      - /srv/.next
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

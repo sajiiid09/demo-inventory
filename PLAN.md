@@ -1,7 +1,27 @@
 # Build Plan — MicroLoan Demo
 
 > The order in which this gets built, and how each phase proves it is finished.
-> Nothing here is built yet — this document exists so implementation is mechanical.
+
+---
+
+## Build outcome (added after implementation)
+
+Every phase 0–9 was completed with its exit criterion verified. Four deliberate
+deviations from the plan above, agreed before implementation began:
+
+1. **Phase 8 was built thinner than specified** (and ADR-017 amended to match):
+   plain Tailwind, no shadcn/ui; the app covers login, members list + register,
+   loans list + new with live preview, loan detail with role-gated actions, and
+   the dashboard. Member detail, repayments pages, and audit-log UI were dropped —
+   the API (and Swagger) serves them.
+2. **The API test suite is rules-focused, not exhaustive**: one test per rule
+   R1–R6, both worked examples, the §9 allocation case, disbursement atomicity,
+   auto-close, the append-only triggers, and the invariants check — rather than
+   all ~90 named cases in TESTING.md.
+3. **Tests run sync** (starlette `TestClient`), not pytest-asyncio + httpx
+   `AsyncClient` — simpler, same coverage.
+4. **Postgres is published on host port 5433** (5432 is commonly taken by a
+   local Postgres); containers talk internally regardless.
 
 ---
 

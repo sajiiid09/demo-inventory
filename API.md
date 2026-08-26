@@ -245,13 +245,13 @@ Flat interest means there is no rebate for settling early — see [DOMAIN.md](DO
 ### `POST /repayments` — CASHIER, ADMIN
 
 ```json
-→ { "loan_id": "…", "amount": "10000.00", "paid_on": "2026-01-20",
+→ { "loan_id": "…", "amount": "10000.00", "paid_on": "2026-01-13",
     "method": "CASH", "note": "Collected at Mirpur branch" }
 
 ← 201
   { "id": "…", "receipt_no": "R-000311", "loan_code": "L-000019",
     "member": { "member_code": "M-000042", "full_name": "Rahim Uddin" },
-    "amount": "10000.00", "paid_on": "2026-01-20", "method": "CASH",
+    "amount": "10000.00", "paid_on": "2026-01-13", "method": "CASH",
     "received_by": "Nadia (CASHIER)",
     "allocations": [
       { "seq": 1, "due_date": "2026-01-12", "fee": "0.00",
@@ -265,7 +265,9 @@ Flat interest means there is no rebate for settling early — see [DOMAIN.md](DO
 ```
 
 The allocation breakdown is returned so the receipt printed for the customer shows exactly
-where their money went. Errors:
+where their money went. (The example above is the DOMAIN.md §9 case: `paid_on` 2026-01-13
+sits inside installment 1's grace period, so no fee applies. A payment after 2026-01-15
+would consume the 100.00 late fee on installment 1 *first*.) Errors:
 
 - `INVALID_STATE` (409) — the loan is not `DISBURSED`
 - `INVALID_DATE` (422, R5) — `paid_on` before `disbursed_on`, or in the future

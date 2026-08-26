@@ -1,0 +1,26 @@
+# --- secrets / env ---
+.env
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- node / next ---
+node_modules/
+.next/
+out/
+next-env.d.ts
+
+# --- editors / os ---
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# playwright artifacts
+.playwright-mcp/
