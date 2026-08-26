@@ -21,3 +21,6 @@ next-env.d.ts
 *.swp
 .idea/
 .vscode/
+
+# playwright artifacts
+.playwright-mcp/
