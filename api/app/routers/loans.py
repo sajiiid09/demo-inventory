@@ -40,7 +40,8 @@ from app.schemas.loans import (
     ScheduleDetailRow,
     ScheduleRowOut,
 )
-from app.services import loan_service
+from app.schemas.repayments import SettlementQuoteOut
+from app.services import loan_service, repayment_service
 from app.services.helpers import outstanding_by_loan
 from app.security import require_role
 
@@ -187,6 +188,26 @@ def disburse_loan(
         session, loan_id=loan_id, disbursed_on=body.disbursed_on, actor=user
     )
     return _detail(session, loan, as_of=clock.today())
+
+
+@router.get("/{loan_id}/settlement-quote", response_model=SettlementQuoteOut)
+def settlement_quote(
+    loan_id: uuid.UUID,
+    as_of: dt.date | None = None,
+    user: User = Depends(require_role()),
+    session: Session = Depends(get_session),
+):
+    # Flat interest: no rebate. Settling early costs remaining amount_due plus
+    # accrued fees as of `as_of` (DOMAIN.md §10).
+    outstanding, fees, total, _loan = repayment_service.settlement_quote(
+        session, loan_id=loan_id, as_of=as_of or clock.today()
+    )
+    return SettlementQuoteOut(
+        as_of=as_of or clock.today(),
+        outstanding=outstanding,
+        accrued_fees=fees,
+        settlement_total=total,
+    )
 
 
 # --- detail assembly ---------------------------------------------------------
