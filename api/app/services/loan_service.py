@@ -68,6 +68,9 @@ def create(
     applied_on: dt.date,
     actor: User,
 ) -> Loan:
+    from app.models import LoanFrequency
+
+    frequency = LoanFrequency(frequency)  # accept "WEEKLY" or the enum member
     member = session.get(Member, member_id)
     if member is None:
         raise not_found("No member with this id.")
