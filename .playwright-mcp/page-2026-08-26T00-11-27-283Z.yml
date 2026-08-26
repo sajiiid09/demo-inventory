@@ -1,0 +1,43 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e22] [cursor=pointer]
+  - alert [ref=e16]
+  - generic [ref=e26]:
+    - banner [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]: MicroLoan
+          - navigation [ref=e31]:
+            - link "Dashboard" [ref=e32] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Members" [ref=e33] [cursor=pointer]:
+              - /url: /members
+            - link "Loans" [ref=e34] [cursor=pointer]:
+              - /url: /loans
+        - generic [ref=e35]:
+          - generic [ref=e36]: Karim Hussain · OFFICER
+          - button "Sign out" [ref=e38] [cursor=pointer]
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - heading "Dashboard" [level=1] [ref=e41]
+        - paragraph [ref=e42]: Each figure is one SQL query — reproducible in psql (DATABASE.md §5).
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - paragraph [ref=e45]: Total members
+            - paragraph [ref=e46]: "3"
+            - paragraph [ref=e47]: active only
+          - generic [ref=e48]:
+            - paragraph [ref=e49]: Active loans
+            - paragraph [ref=e50]: "0"
+            - paragraph [ref=e51]: DISBURSED
+          - generic [ref=e52]:
+            - paragraph [ref=e53]: Total disbursed
+            - paragraph [ref=e54]: 100,000.00
+            - paragraph [ref=e55]: all-time, ledger
+          - generic [ref=e56]:
+            - paragraph [ref=e57]: Total collections
+            - paragraph [ref=e58]: 106,038.46
+            - paragraph [ref=e59]: includes fees
+          - generic [ref=e60]:
+            - paragraph [ref=e61]: Total outstanding
+            - paragraph [ref=e62]: "0.00"
+            - paragraph [ref=e63]: excludes fees

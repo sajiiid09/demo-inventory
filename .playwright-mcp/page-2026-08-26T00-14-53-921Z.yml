@@ -1,0 +1,40 @@
+- generic [ref=f7e2]:
+  - banner [ref=f7e3]:
+    - generic [ref=f7e4]:
+      - generic [ref=f7e5]:
+        - generic [ref=f7e6]: MicroLoan
+        - navigation [ref=f7e7]:
+          - link "Dashboard" [ref=f7e8] [cursor=pointer]:
+            - /url: /dashboard
+          - link "Members" [ref=f7e9] [cursor=pointer]:
+            - /url: /members
+          - link "Loans" [ref=f7e10] [cursor=pointer]:
+            - /url: /loans
+      - generic [ref=f7e11]:
+        - generic [ref=f7e12]: Nadia Islam · CASHIER
+        - button "Sign out" [ref=f7e14] [cursor=pointer]
+  - main [ref=f7e15]:
+    - generic [ref=f7e16]:
+      - heading "Dashboard" [level=1] [ref=f7e17]
+      - paragraph [ref=f7e18]: Each figure is one SQL query — reproducible in psql (DATABASE.md §5).
+      - generic [ref=f7e19]:
+        - generic [ref=f7e20]:
+          - paragraph [ref=f7e21]: Total members
+          - paragraph [ref=f7e22]: "4"
+          - paragraph [ref=f7e23]: active only
+        - generic [ref=f7e24]:
+          - paragraph [ref=f7e25]: Active loans
+          - paragraph [ref=f7e26]: "1"
+          - paragraph [ref=f7e27]: DISBURSED
+        - generic [ref=f7e28]:
+          - paragraph [ref=f7e29]: Total disbursed
+          - paragraph [ref=f7e30]: 200,000.00
+          - paragraph [ref=f7e31]: all-time, ledger
+        - generic [ref=f7e32]:
+          - paragraph [ref=f7e33]: Total collections
+          - paragraph [ref=f7e34]: 116,038.46
+          - paragraph [ref=f7e35]: includes fees
+        - generic [ref=f7e36]:
+          - paragraph [ref=f7e37]: Total outstanding
+          - paragraph [ref=f7e38]: 95,538.46
+          - paragraph [ref=f7e39]: excludes fees

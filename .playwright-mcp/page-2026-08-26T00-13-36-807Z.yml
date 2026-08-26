@@ -1,0 +1,43 @@
+- generic [active] [ref=f4e1]:
+  - button "Open Next.js Dev Tools" [ref=f4e49] [cursor=pointer]
+  - alert [ref=f4e53]
+  - generic [ref=f4e174]:
+    - banner [ref=f4e175]:
+      - generic [ref=f4e176]:
+        - generic [ref=f4e177]:
+          - generic [ref=f4e178]: MicroLoan
+          - navigation [ref=f4e179]:
+            - link "Dashboard" [ref=f4e180] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Members" [ref=f4e181] [cursor=pointer]:
+              - /url: /members
+            - link "Loans" [ref=f4e182] [cursor=pointer]:
+              - /url: /loans
+        - generic [ref=f4e183]:
+          - generic [ref=f4e184]: Ayesha Rahman · ADMIN
+          - button "Sign out" [ref=f4e186] [cursor=pointer]
+    - main [ref=f4e187]:
+      - generic [ref=f4e188]:
+        - heading "Dashboard" [level=1] [ref=f4e189]
+        - paragraph [ref=f4e190]: Each figure is one SQL query — reproducible in psql (DATABASE.md §5).
+        - generic [ref=f4e191]:
+          - generic [ref=f4e192]:
+            - paragraph [ref=f4e193]: Total members
+            - paragraph [ref=f4e194]: "4"
+            - paragraph [ref=f4e195]: active only
+          - generic [ref=f4e196]:
+            - paragraph [ref=f4e197]: Active loans
+            - paragraph [ref=f4e198]: "0"
+            - paragraph [ref=f4e199]: DISBURSED
+          - generic [ref=f4e200]:
+            - paragraph [ref=f4e201]: Total disbursed
+            - paragraph [ref=f4e202]: 100,000.00
+            - paragraph [ref=f4e203]: all-time, ledger
+          - generic [ref=f4e204]:
+            - paragraph [ref=f4e205]: Total collections
+            - paragraph [ref=f4e206]: 106,038.46
+            - paragraph [ref=f4e207]: includes fees
+          - generic [ref=f4e208]:
+            - paragraph [ref=f4e209]: Total outstanding
+            - paragraph [ref=f4e210]: "0.00"
+            - paragraph [ref=f4e211]: excludes fees

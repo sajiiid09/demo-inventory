@@ -1,0 +1,104 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - banner [ref=f4e3]:
+      - generic [ref=f4e4]:
+        - generic [ref=f4e5]:
+          - generic [ref=f4e6]: MicroLoan
+          - navigation [ref=f4e7]:
+            - link "Dashboard" [ref=f4e8] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Members" [ref=f4e9] [cursor=pointer]:
+              - /url: /members
+            - link "Loans" [ref=f4e10] [cursor=pointer]:
+              - /url: /loans
+        - generic [ref=f4e11]:
+          - generic [ref=f4e12]: Karim Hussain · OFFICER
+          - button "Sign out" [ref=f4e14] [cursor=pointer]
+    - main [ref=f4e15]:
+      - generic [ref=f4e16]:
+        - heading "New loan application" [level=1] [ref=f4e17]
+        - generic [ref=f4e19]:
+          - generic [ref=f4e20]:
+            - generic [ref=f4e21]:
+              - text: Member
+              - combobox "Member" [ref=f4e22]:
+                - option "M-000001 · Rahim Uddin"
+                - option "M-000002 · Sultana Begum"
+                - option "M-000003 · Jahanara Imam"
+                - option "M-000004 · Abdul Karim" [selected]
+            - generic [ref=f4e23]:
+              - generic [ref=f4e24]:
+                - text: Principal
+                - textbox "Principal" [ref=f4e25]: "100000.00"
+              - generic [ref=f4e26]:
+                - text: Rate %/yr (flat)
+                - textbox "Rate %/yr (flat)" [ref=f4e27]: "12.00"
+              - generic [ref=f4e28]:
+                - text: Installments
+                - textbox "Installments" [ref=f4e29]: "24"
+              - generic [ref=f4e30]:
+                - text: Frequency
+                - combobox "Frequency" [ref=f4e31]:
+                  - option "Weekly" [selected]
+                  - option "Monthly"
+              - generic [ref=f4e32]:
+                - text: Late fee
+                - textbox "Late fee" [ref=f4e33]: "100.00"
+              - generic [ref=f4e34]:
+                - text: Grace days
+                - textbox "Grace days" [ref=f4e35]: "3"
+            - generic [ref=f4e36]:
+              - text: Applied on
+              - textbox "Applied on" [ref=f4e37]: 2026-01-02
+            - generic [ref=f4e38]:
+              - button "Preview schedule" [active] [ref=f4e39] [cursor=pointer]
+              - button "Create application" [ref=f4e40] [cursor=pointer]
+          - generic [ref=f4e41]:
+            - paragraph [ref=f4e42]: Live preview (writes nothing)
+            - generic [ref=f4e54]:
+              - generic [ref=f4e55]:
+                - term [ref=f4e56]: Interest
+                - definition [ref=f4e57]: 5,538.46
+              - generic [ref=f4e58]:
+                - term [ref=f4e59]: Total payable
+                - definition [ref=f4e60]: 105,538.46
+              - generic [ref=f4e61]:
+                - term [ref=f4e62]: Per installment
+                - definition [ref=f4e63]: 4,397.44
+            - table [ref=f4e64]:
+              - rowgroup [ref=f4e65]:
+                - row [ref=f4e66]:
+                  - columnheader "#" [ref=f4e67]
+                  - columnheader "Due" [ref=f4e68]
+                  - columnheader "Principal" [ref=f4e69]
+                  - columnheader "Interest" [ref=f4e70]
+                  - columnheader "Amount" [ref=f4e71]
+              - rowgroup [ref=f4e72]:
+                - row [ref=f4e73]:
+                  - cell "1" [ref=f4e74]
+                  - cell "2026-01-09" [ref=f4e75]
+                  - cell "4,166.67" [ref=f4e76]
+                  - cell "230.77" [ref=f4e77]
+                  - cell "4,397.44" [ref=f4e78]
+                - row [ref=f4e79]:
+                  - cell "2" [ref=f4e80]
+                  - cell "2026-01-16" [ref=f4e81]
+                  - cell "4,166.67" [ref=f4e82]
+                  - cell "230.77" [ref=f4e83]
+                  - cell "4,397.44" [ref=f4e84]
+                - row [ref=f4e85]:
+                  - cell "3" [ref=f4e86]
+                  - cell "2026-01-23" [ref=f4e87]
+                  - cell "4,166.67" [ref=f4e88]
+                  - cell "230.77" [ref=f4e89]
+                  - cell "4,397.44" [ref=f4e90]
+                - row [ref=f4e91]:
+                  - cell "… 20 more …" [ref=f4e92]
+                - row [ref=f4e93]:
+                  - cell "24" [ref=f4e94]
+                  - cell "2026-06-19" [ref=f4e95]
+                  - cell "4,166.59" [ref=f4e96]
+                  - cell "230.75" [ref=f4e97]
+                  - cell "4,397.34" [ref=f4e98]
+  - button "Open Next.js Dev Tools" [ref=f4e49] [cursor=pointer]
+  - alert [ref=f4e53]

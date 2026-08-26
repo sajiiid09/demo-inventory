@@ -1,0 +1,18 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - heading "MicroLoan Demo" [level=1] [ref=e3]
+    - paragraph [ref=e4]: Sign in with a demo account.
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - text: Email
+        - textbox "Email" [ref=e7]: officer@demo.local
+      - generic [ref=e8]:
+        - text: Password
+        - textbox "Password" [ref=e9]: demo1234
+      - button "Sign in" [ref=e10] [cursor=pointer]
+    - generic [ref=e11]:
+      - paragraph [ref=e12]: admin@demo.local · approves and rejects
+      - paragraph [ref=e13]: officer@demo.local · registers members, creates loans
+      - paragraph [ref=e14]: cashier@demo.local · disburses, collects
+      - paragraph [ref=e15]: "(password: demo1234)"
+  - alert [ref=e16]

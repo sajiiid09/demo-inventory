@@ -1,0 +1,40 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - banner [ref=f3e3]:
+      - generic [ref=f3e4]:
+        - generic [ref=f3e5]:
+          - generic [ref=f3e6]: MicroLoan
+          - navigation [ref=f3e7]:
+            - link "Dashboard" [ref=f3e8] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Members" [ref=f3e9] [cursor=pointer]:
+              - /url: /members
+            - link "Loans" [ref=f3e10] [cursor=pointer]:
+              - /url: /loans
+        - generic [ref=f3e11]:
+          - generic [ref=f3e12]: Karim Hussain · OFFICER
+          - button "Sign out" [ref=f3e14] [cursor=pointer]
+    - main [ref=f3e15]:
+      - generic [ref=f3e16]:
+        - heading "Register member" [level=1] [ref=f3e17]
+        - generic [ref=f3e18]:
+          - generic [ref=f3e19]:
+            - text: Full name
+            - textbox "Full name" [ref=f3e20]
+          - generic [ref=f3e21]:
+            - text: Phone (unique)
+            - textbox "Phone (unique)" [ref=f3e22]
+          - generic [ref=f3e23]:
+            - text: National ID (unique)
+            - textbox "National ID (unique)" [ref=f3e24]
+          - generic [ref=f3e25]:
+            - text: Address
+            - textbox "Address" [ref=f3e26]
+          - generic [ref=f3e27]:
+            - text: Joined on
+            - textbox "Joined on" [ref=f3e28]: 2026-01-02
+          - generic [ref=f3e29]:
+            - button "Register" [ref=f3e30] [cursor=pointer]
+            - link "Cancel" [ref=f3e31] [cursor=pointer]:
+              - /url: /members
+  - alert [ref=f3e32]

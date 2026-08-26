@@ -1,0 +1,19 @@
+- generic [active] [ref=f4e1]:
+  - button "Open Next.js Dev Tools" [ref=f4e49] [cursor=pointer]
+  - alert [ref=f4e53]
+  - main [ref=f4e160]:
+    - heading "MicroLoan Demo" [level=1] [ref=f4e161]
+    - paragraph [ref=f4e162]: Sign in with a demo account.
+    - generic [ref=f4e163]:
+      - generic [ref=f4e164]:
+        - text: Email
+        - textbox "Email" [ref=f4e165]: officer@demo.local
+      - generic [ref=f4e166]:
+        - text: Password
+        - textbox "Password" [ref=f4e167]: demo1234
+      - button "Sign in" [ref=f4e168] [cursor=pointer]
+    - generic [ref=f4e169]:
+      - paragraph [ref=f4e170]: admin@demo.local · approves and rejects
+      - paragraph [ref=f4e171]: officer@demo.local · registers members, creates loans
+      - paragraph [ref=f4e172]: cashier@demo.local · disburses, collects
+      - paragraph [ref=f4e173]: "(password: demo1234)"
