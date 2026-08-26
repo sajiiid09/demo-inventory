@@ -79,10 +79,11 @@ def get_current_user(
 
 
 def require_role(*roles: UserRole):
-    """Dependency factory: `Depends(require_role(Role.ADMIN, …))`."""
+    """Dependency factory. `require_role(ADMIN)` checks a role;
+    `require_role()` with no roles means any authenticated user."""
 
     def checker(user: User = Depends(get_current_user)) -> User:
-        if user.role not in roles:
+        if roles and user.role not in roles:
             raise forbidden(
                 f"This action requires role {' or '.join(r.value for r in roles)}; "
                 f"you are {user.role.value}."
