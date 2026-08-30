@@ -37,7 +37,7 @@ edge case — is drivable from the API docs at `http://localhost:8000/docs`.
 
 ## Documentation
 
-Eight short documents, each with one job.
+Nine short documents, each with one job.
 
 | File | Read it for |
 |---|---|
@@ -47,7 +47,8 @@ Eight short documents, each with one job.
 | [API.md](API.md) | Endpoints, roles, payloads, and the error contract |
 | [PLAN.md](PLAN.md) | The phased build order, with an exit criterion per phase |
 | [TESTING.md](TESTING.md) | What is tested and why — a named checklist, not an essay |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Twelve decisions, each with the alternatives that were rejected |
+| [DEMO.md](DEMO.md) | A scripted walkthrough of every feature, role by role |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Eighteen decisions, each with the alternatives that were rejected |
 
 **Reading it cold?** [DOMAIN.md](DOMAIN.md) §6 first — one worked loan, start to finish.
 Everything else is machinery around those numbers.
@@ -76,12 +77,20 @@ cp .env.example .env
 docker compose up
 ```
 
-Then, in a second terminal, create the schema and load demo data:
+That is the whole procedure. **Starting the API creates the database, creates every table,
+and loads the demo data** — there is no migrate step and no seed step to remember (ADR-018).
+The boot says what it did:
 
-```bash
-docker compose exec api alembic upgrade head
-docker compose exec api python seed.py
 ```
+api-1  | INFO:     created database 'microloan'
+api-1  | INFO:     schema is at revision 0001
+api-1  | INFO:     seed: 3 staff logins · 20 members (1 INACTIVE) · 8 loans in every status …
+api-1  | INFO:     Application startup complete.
+```
+
+Restart it and every step finds nothing to do. Each one can be switched off
+(`AUTO_CREATE_DATABASE`, `AUTO_MIGRATE`, `AUTO_SEED`) for an environment that provisions its
+database elsewhere — see [DATABASE.md](DATABASE.md) §7.
 
 | Service | URL |
 |---|---|
@@ -89,9 +98,68 @@ docker compose exec api python seed.py
 | API docs (Swagger) | http://localhost:8000/docs |
 | Postgres | `localhost:5433` (5432 is left free for any local Postgres), database `microloan` |
 
+### Running the pieces separately (for QA)
+
+For hands-on testing it is easier to run the API and the web app yourself, with only Postgres
+in a container — you get reloads, real stack traces, and Swagger on a server you control.
+
+```bash
+docker compose up -d postgres      # the database only
+
+# terminal 1 — backend
+cd api
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/uvicorn app.main:app --reload --port 8000
+
+# terminal 2 — frontend
+cd web
+npm install
+npm run dev
+```
+
+No `.env` is needed for this: the built-in defaults already point at
+`localhost:5433/microloan`, and the frontend defaults to `http://localhost:8000`. The same
+startup bootstrap runs, so the backend still creates and migrates its own database:
+
+```
+INFO:     schema is at revision 0001
+INFO:     seed: 3 staff logins verified; portfolio already present
+INFO:     Application startup complete.
+```
+
+If the API and the web app are already running in containers, stop just those two and leave
+the database up:
+
+```bash
+docker compose stop api web
+```
+
+### Testing the API from Swagger
+
+Open **http://localhost:8000/docs**. Authentication needs no setup — the session is an
+httpOnly cookie, and Swagger is served from the same origin as the API, so the browser
+carries it for you:
+
+1. **`POST /auth/login`** → *Try it out* → `{"email": "admin@demo.local", "password": "demo1234"}` → *Execute*.
+2. Every protected endpoint now works. There is no token to copy and no **Authorize** button to press.
+3. **Switch roles** by running `POST /auth/login` again with a different email — the new cookie replaces the old one. This is the quickest way to see the role checks fire:
+
+   | As | Call | Expect |
+   |---|---|---|
+   | officer | `GET /audit-log` | `403 FORBIDDEN` — *requires role ADMIN; you are OFFICER* |
+   | cashier | `POST /members` | `403 FORBIDDEN` — *requires role OFFICER or ADMIN* |
+   | admin | `GET /audit-log` | `200` |
+
+4. **`POST /auth/logout`** clears the cookie; `GET /auth/me` then returns `401`.
+
+Note that `/docs` loads Swagger UI from a CDN, so it needs an internet connection. The raw
+spec at `/openapi.json` does not.
+
 ### Demo logins
 
-Seeded by `seed.py`. **Demo credentials only — never use these anywhere real.**
+Created on startup, and repaired on every boot — an account deactivated or given the wrong
+role during a demo comes back correct on the next restart.
+**Demo credentials only — never use these anywhere real.**
 
 | Role | Email | Password |
 |---|---|---|
@@ -99,16 +167,46 @@ Seeded by `seed.py`. **Demo credentials only — never use these anywhere real.*
 | Officer | `officer@demo.local` | `demo1234` |
 | Cashier | `cashier@demo.local` | `demo1234` |
 
+New to the app? [DEMO.md](DEMO.md) is a scripted walkthrough — every feature, in the order
+each role would meet it.
+
+### Looking at the database in pgAdmin or DBeaver
+
+Postgres is published on the host, so any client connects straight to it:
+
+| Host | Port | Database | User | Password |
+|---|---|---|---|---|
+| `localhost` | `5433` | `microloan` | `microloan` | `microloan` |
+
+[DATABASE.md](DATABASE.md) §8 has the click-path for both tools and a short list of things
+worth opening — the partial unique index that *is* the one-active-loan rule, and the triggers
+that make the ledger append-only.
+
+### Starting over
+
+```bash
+docker compose down -v && docker compose up
+```
+
+The `-v` drops the Postgres volume; the next boot rebuilds and reseeds from nothing. (The
+demo portfolio is never re-applied on top of itself — the ledger is append-only, so a reset
+means a clean database.)
+
 ### Running the tests
 
 ```bash
-cd api
-pytest tests/domain -q     # the arithmetic — fast, no database needed
-pytest -q                  # everything, including API integration tests
+cd api && pytest              # everything: domain + API integration
+cd api && pytest tests/domain # the arithmetic alone — fast, no database
 ```
 
-The API suite creates and migrates a throwaway `microloan_test` database once per
-session (on the same Postgres instance), then builds its own data through the API.
+Or against the running stack, without a local Python at all:
+
+```bash
+docker compose exec api pytest
+```
+
+The API suite creates and migrates a throwaway `microloan_test` database once per session
+(on whatever `DATABASE_URL` points at), then builds its own data through the API.
 
 ### Verifying the books balance
 
@@ -131,8 +229,10 @@ Every violations count must be `0`.
    loan per member, and the triggers that make the payment ledger physically append-only.
 4. **[DOMAIN.md](DOMAIN.md) §6** — a 100,000.00 BDT loan over 24 weekly installments,
    worked out to the paisa.
-5. **`api/seed.py`** — loans in every status, built through the real services, from fixed
-   dates, so the demo looks the same every run.
+5. **`api/app/seeds.py`** — loans in every status, built through the real services, from
+   fixed dates, so the demo looks the same every run.
+6. **`api/app/bootstrap.py`** — the five idempotent steps between "container started" and
+   "database ready", and why none of them is `create_all()`.
 
 ---
 

@@ -215,6 +215,23 @@ ledger_totals_match_source_records
 closed_loans_owe_nothing
 ```
 
+### `test_bootstrap.py`
+
+The "just run the backend" promise (ADR-018). Startup has to be safe on the second boot as
+much as the first, so each step is tested for idempotency:
+
+```
+ensure_database creates a missing database, then leaves it alone
+ensure_database does not recreate an existing one
+alembic upgrade head is idempotent and reports the revision
+every table exists after migrating
+all three staff roles are seeded
+a drifted staff account is repaired, not duplicated
+```
+
+The last one matters during a live demo: an account that was deactivated or given the wrong
+role comes back correct on the next restart, without a second `admin@demo.local` appearing.
+
 ---
 
 ## 4. Rule-to-test coverage
@@ -238,9 +255,20 @@ Every business rule has at least one test that names it. This table is the audit
 docker compose up -d postgres
 cd api
 pytest tests/domain -q          # fast, no database, run this constantly while coding
-pytest -q                       # everything
+pytest -q                       # everything — 240 tests
 pytest --cov=app --cov-report=term-missing
 ```
+
+Or against the running stack, with no local Python at all:
+
+```bash
+docker compose exec api pytest
+```
+
+Both work because `tests/conftest.py` derives the throwaway `microloan_test` database from
+whatever `DATABASE_URL` points at, rather than hard-coding a host and port. The suite also
+switches the application's startup bootstrap off (`AUTO_MIGRATE=false`, `AUTO_SEED=false`):
+conftest owns its own database, and the demo portfolio would only get in the tests' way.
 
 **Coverage target:** 100% of `app/domain/` — it is pure and small, so there is no excuse for
 a gap. Everything else is covered by consequence, not by target; chasing a global percentage

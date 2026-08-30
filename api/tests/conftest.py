@@ -1,58 +1,68 @@
 """Test bootstrap.
 
 A throwaway `microloan_test` database is created and migrated once per
-session. Tests build their own world through the API (unique phones/national
-IDs per test) and never call date.today() — every date is fixed, and R5's
-"not in the future" guard reads the injectable app clock.
+session, on whatever Postgres DATABASE_URL points at — so the same suite runs
+on the host (`cd api && pytest`) and inside the container
+(`docker compose exec api pytest`). Tests build their own world through the API
+(unique phones/national IDs per test) and never call date.today() — every date
+is fixed, and R5's "not in the future" guard reads the injectable app clock.
+
+The application's startup bootstrap is switched off here: this file owns the
+test database, and the demo portfolio would only get in the tests' way.
 """
 
 import os
 import uuid
 
+from sqlalchemy.engine import make_url
+
 TEST_DB = "microloan_test"
-TEST_DATABASE_URL = f"postgresql+psycopg://microloan:microloan@localhost:5433/{TEST_DB}"
 
 # Must happen before ANY app module import — settings read the env once.
-os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+_source_url = make_url(
+    os.environ.get(
+        "DATABASE_URL",
+        "postgresql+psycopg://microloan:microloan@localhost:5433/microloan",
+    )
+)
+os.environ["DATABASE_URL"] = _source_url.set(database=TEST_DB).render_as_string(
+    hide_password=False
+)
+os.environ["AUTO_MIGRATE"] = "false"
+os.environ["AUTO_SEED"] = "false"
 
-import psycopg  # noqa: E402
 import pytest  # noqa: E402
-from alembic import command  # noqa: E402
-from alembic.config import Config  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import create_engine, text  # noqa: E402
 
+from app import bootstrap  # noqa: E402
 from app.db import SessionLocal  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import User, UserRole  # noqa: E402
+from app.models import User  # noqa: E402
 from app.security import hash_password  # noqa: E402
-
-DEMO_USERS = [
-    ("admin@demo.local", "Ayesha Rahman", UserRole.ADMIN),
-    ("officer@demo.local", "Karim Hussain", UserRole.OFFICER),
-    ("cashier@demo.local", "Nadia Islam", UserRole.CASHIER),
-]
+from app.seeds import DEMO_PASSWORD, DEMO_USERS  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
 def database():
     """Fresh throwaway database, migrated, with the three demo users."""
-    admin_conn = psycopg.connect(
-        "host=localhost port=5433 dbname=microloan user=microloan password=microloan",
-        autocommit=True,
+    maintenance = create_engine(
+        _source_url.set(database="postgres").render_as_string(hide_password=False),
+        isolation_level="AUTOCOMMIT",
     )
-    admin_conn.execute(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)")
-    admin_conn.execute(f"CREATE DATABASE {TEST_DB}")
-    admin_conn.close()
+    with maintenance.connect() as conn:
+        conn.execute(text(f"DROP DATABASE IF EXISTS {TEST_DB} WITH (FORCE)"))
+        conn.execute(text(f"CREATE DATABASE {TEST_DB}"))
+    maintenance.dispose()
 
-    alembic_cfg = Config("alembic.ini")  # env.py reads DATABASE_URL from settings
-    command.upgrade(alembic_cfg, "head")
+    bootstrap.run_migrations()  # the same upgrade the API runs on startup
 
     with SessionLocal() as session:
         for email, full_name, role in DEMO_USERS:
             session.add(
                 User(
                     email=email, full_name=full_name, role=role,
-                    password_hash=hash_password("demo1234"),
+                    password_hash=hash_password(DEMO_PASSWORD),
                 )
             )
         session.commit()
@@ -71,7 +81,7 @@ def clients(database):
         client = TestClient(app)
         response = client.post(
             "/auth/login",
-            json={"email": f"{role}@demo.local", "password": "demo1234"},
+            json={"email": f"{role}@demo.local", "password": DEMO_PASSWORD},
         )
         assert response.status_code == 200, response.text
         setattr(bundle, role, client)

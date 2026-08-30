@@ -10,7 +10,7 @@ import { jwtVerify } from "jose";
 // middleware is a UX gate only — FastAPI verifies sessions against its own
 // secret and remains the sole authority (ADR-007).
 const secret = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? "dev-secret-change-me",
+  process.env.JWT_SECRET ?? "dev-only-secret-please-change-me-32-bytes",
 );
 
 export async function middleware(req: NextRequest) {
