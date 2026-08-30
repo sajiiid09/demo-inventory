@@ -1,10 +1,19 @@
 import Link from "next/link";
 
+import { buttonClass } from "@/components/ui/button";
+import { DetailItem } from "@/components/ui/detail";
+import { DisclosureRow } from "@/components/ui/disclosure-row";
+import { fieldClass } from "@/components/ui/field";
+import { ArrowRight, Search } from "@/components/ui/icons";
+import { Meter } from "@/components/ui/meter";
+import { StatusBadge } from "@/components/ui/status";
+import { EmptyRow, Num, Table, Td, Th } from "@/components/ui/table";
 import { api } from "@/lib/api";
-import { money, statusClass } from "@/lib/format";
+import { formatDateShort, money, num, relativeDate } from "@/lib/format";
 import type { LoanListItem, Page } from "@/lib/types";
 
 const FILTERS = ["ALL", "PENDING", "APPROVED", "DISBURSED", "CLOSED", "REJECTED"];
+const COLS = 5;
 
 export default async function LoansPage({
   searchParams,
@@ -17,79 +26,166 @@ export default async function LoansPage({
   if (sp.q) params.set("q", sp.q);
   const page = await api.get<Page<LoanListItem>>(`/loans${params.size ? `?${params}` : ""}`);
 
+  // Resolved once on the server so every relative string on the page agrees.
+  const now = new Date();
+  const active = sp.status ?? "ALL";
+
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Loans</h1>
-        <Link
-          href="/loans/new"
-          className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-medium tracking-tight">Loans</h1>
+        <Link href="/loans/new" className={buttonClass("primary")}>
           New loan
         </Link>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {FILTERS.map((f) => (
-          <Link
-            key={f}
-            href={f === "ALL" ? "/loans" : `/loans?status=${f}`}
-            className={`rounded-full px-3 py-1 text-xs ${
-              (sp.status ?? "ALL") === f
-                ? "bg-gray-900 text-white"
-                : "border border-gray-300 text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {f}
-          </Link>
-        ))}
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        {/* Square segmented control — active state is a straight inversion. */}
+        <div className="flex flex-wrap border border-rule">
+          {FILTERS.map((f) => (
+            <Link
+              key={f}
+              href={f === "ALL" ? "/loans" : `/loans?status=${f}`}
+              aria-current={active === f ? "true" : undefined}
+              className={`border-r border-rule px-3 py-1.5 text-micro uppercase transition-colors duration-150 last:border-r-0 ${
+                active === f
+                  ? "on-ink bg-ink text-paper"
+                  : "text-ink-muted hover:bg-paper-muted hover:text-ink"
+              }`}
+            >
+              {f}
+            </Link>
+          ))}
+        </div>
+
+        <form action="/loans" className="flex gap-2">
+          {sp.status && sp.status !== "ALL" && (
+            <input type="hidden" name="status" value={sp.status} />
+          )}
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint">
+              <Search />
+            </span>
+            <input
+              name="q"
+              defaultValue={sp.q ?? ""}
+              aria-label="Search loans"
+              placeholder="Loan code, member name or code…"
+              className={`${fieldClass} mt-0 w-64 py-1.5 pl-9`}
+            />
+          </div>
+          <button className={buttonClass("secondary")}>Search</button>
+        </form>
       </div>
 
-      <table className="mt-4 w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-            <th className="py-2">Code</th>
-            <th className="py-2">Member</th>
-            <th className="py-2 text-right">Principal</th>
-            <th className="py-2 text-right">Total payable</th>
-            <th className="py-2 text-right">Outstanding</th>
-            <th className="py-2">Next due</th>
-            <th className="py-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {page.items.map((l) => (
-            <tr key={l.id} className="border-b border-gray-100">
-              <td className="py-2">
-                <Link href={`/loans/${l.id}`} className="font-mono text-xs underline">
-                  {l.loan_code}
-                </Link>
-              </td>
-              <td className="py-2">
-                {l.member.full_name}{" "}
-                <span className="font-mono text-xs text-gray-400">{l.member.member_code}</span>
-              </td>
-              <td className="py-2 text-right tabular-nums">{money(l.principal)}</td>
-              <td className="py-2 text-right tabular-nums">{money(l.total_payable)}</td>
-              <td className="py-2 text-right tabular-nums">{money(l.outstanding)}</td>
-              <td className="py-2">{l.next_due_date ?? "—"}</td>
-              <td className="py-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs ${statusClass(l.status)}`}>
-                  {l.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-          {page.items.length === 0 && (
+      <div className="mt-6">
+        {/* Below md the wrapper scrolls; the min-width stops columns crushing. */}
+        <Table className="min-w-[32rem]">
+          <thead>
             <tr>
-              <td colSpan={7} className="py-6 text-center text-gray-400">
-                No loans match.
-              </td>
+              <Th>Loan</Th>
+              <Th className="hidden sm:table-cell">Next due</Th>
+              <Th align="right">Outstanding</Th>
+              <Th>Status</Th>
+              <Th />
             </tr>
-          )}
-        </tbody>
-      </table>
-      <p className="mt-2 text-xs text-gray-400">{page.total} total</p>
+          </thead>
+          <tbody>
+            {page.items.map((l) => {
+              const payable = num(l.total_payable);
+              const repaid = l.total_payable ? payable - num(l.outstanding) : 0;
+
+              return (
+                <DisclosureRow
+                  key={l.id}
+                  cols={COLS}
+                  label={`loan ${l.loan_code}`}
+                  detail={
+                    <div className="max-w-2xl">
+                      <dl className="grid gap-x-10 sm:grid-cols-2">
+                        <DetailItem label="Principal" value={money(l.principal)} />
+                        <DetailItem label="Total payable" value={money(l.total_payable)} />
+                        <DetailItem
+                          label="Repaid"
+                          value={l.total_payable ? money(repaid) : "—"}
+                        />
+                        <DetailItem label="Outstanding" value={money(l.outstanding)} strong />
+                        <DetailItem
+                          label="Next due"
+                          value={
+                            l.next_due_date
+                              ? `${formatDateShort(l.next_due_date)} · ${relativeDate(
+                                  l.next_due_date,
+                                  now,
+                                )}`
+                              : "—"
+                          }
+                        />
+                        <DetailItem label="Member" value={l.member.full_name} />
+                      </dl>
+
+                      {l.total_payable && payable > 0 && (
+                        <div className="mt-4">
+                          <div className="flex items-baseline justify-between text-micro uppercase text-ink-faint">
+                            <span>Repayment progress</span>
+                            <span className="tnum">
+                              {Math.round((repaid / payable) * 100)}%
+                            </span>
+                          </div>
+                          <Meter
+                            className="mt-1.5"
+                            value={repaid}
+                            total={payable}
+                            label={`${money(repaid)} of ${money(l.total_payable)} repaid`}
+                          />
+                        </div>
+                      )}
+
+                      <Link
+                        href={`/loans/${l.id}`}
+                        className={`${buttonClass("secondary")} mt-5`}
+                      >
+                        View loan <ArrowRight />
+                      </Link>
+                    </div>
+                  }
+                >
+                  <Td>
+                    <Link
+                      href={`/loans/${l.id}`}
+                      className="whitespace-nowrap font-mono text-data underline underline-offset-4 hover:no-underline"
+                    >
+                      {l.loan_code}
+                    </Link>
+                    <span className="mt-0.5 block whitespace-nowrap text-micro text-ink-faint">
+                      {l.member.full_name} · {l.member.member_code}
+                    </span>
+                  </Td>
+                  <Td className="hidden sm:table-cell">
+                    {l.next_due_date ? (
+                      <>
+                        <span className="tnum">{formatDateShort(l.next_due_date)}</span>
+                        <span className="mt-0.5 block text-micro text-ink-faint">
+                          {relativeDate(l.next_due_date, now)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-ink-faint">—</span>
+                    )}
+                  </Td>
+                  <Num>{money(l.outstanding)}</Num>
+                  <Td>
+                    <StatusBadge status={l.status} />
+                  </Td>
+                </DisclosureRow>
+              );
+            })}
+            {page.items.length === 0 && <EmptyRow cols={COLS}>No loans match.</EmptyRow>}
+          </tbody>
+        </Table>
+      </div>
+
+      <p className="mt-3 text-micro uppercase text-ink-faint">{page.total} total</p>
     </div>
   );
 }

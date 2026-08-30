@@ -1,3 +1,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /* The app had no focus styling at all. One rule, everywhere. */
+  :focus-visible {
+    outline: 2px solid theme(colors.ink.DEFAULT);
+    outline-offset: 2px;
+  }
+
+  /* Inverted surfaces need the ring to invert too, or it vanishes into the fill. */
+  .on-ink :focus-visible,
+  .on-ink:focus-visible {
+    outline-color: theme(colors.paper.DEFAULT);
+  }
+
+  ::selection {
+    background: theme(colors.ink.DEFAULT);
+    color: theme(colors.paper.DEFAULT);
+  }
+
+  /* Money and dates must never reflow as digits change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

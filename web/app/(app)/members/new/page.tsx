@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass } from "@/components/ui/field";
 import { createMember } from "@/lib/actions";
 
 export default async function NewMemberPage({
@@ -9,40 +11,42 @@ export default async function NewMemberPage({
 }) {
   const sp = await searchParams;
 
-  const field = "mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm";
-
   return (
     <div className="max-w-md">
-      <h1 className="text-xl font-semibold">Register member</h1>
+      <h1 className="text-xl font-medium tracking-tight">Register member</h1>
+      <p className="mt-1 text-sm text-ink-muted">Phone and national ID must be unique.</p>
+
       {sp.error && (
-        <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{sp.error}</p>
+        <p className="mt-4 border-l-2 border-flag bg-paper-muted px-3 py-2 text-sm text-flag">
+          {sp.error}
+        </p>
       )}
-      <form action={createMember} className="mt-4 space-y-3 text-sm">
+
+      <form action={createMember} className="mt-6 space-y-4 border border-rule p-5">
         <label className="block">
-          <span className="text-gray-700">Full name</span>
-          <input name="full_name" required className={field} />
+          <span className="text-micro uppercase text-ink-muted">Full name</span>
+          <input name="full_name" required className={fieldClass} />
         </label>
         <label className="block">
-          <span className="text-gray-700">Phone (unique)</span>
-          <input name="phone" required className={field} />
+          <span className="text-micro uppercase text-ink-muted">Phone</span>
+          <input name="phone" required className={fieldClass} />
         </label>
         <label className="block">
-          <span className="text-gray-700">National ID (unique)</span>
-          <input name="national_id" required className={field} />
+          <span className="text-micro uppercase text-ink-muted">National ID</span>
+          <input name="national_id" required className={fieldClass} />
         </label>
         <label className="block">
-          <span className="text-gray-700">Address</span>
-          <input name="address" className={field} />
+          <span className="text-micro uppercase text-ink-muted">Address</span>
+          <input name="address" className={fieldClass} />
         </label>
         <label className="block">
-          <span className="text-gray-700">Joined on</span>
-          <input name="joined_on" type="date" required defaultValue="2026-01-02" className={field} />
+          <span className="text-micro uppercase text-ink-muted">Joined on</span>
+          <input name="joined_on" type="date" required defaultValue="2026-01-02" className={fieldClass} />
         </label>
-        <div className="flex gap-2 pt-2">
-          <button className="rounded bg-gray-900 px-3 py-1.5 font-medium text-white hover:bg-gray-700">
-            Register
-          </button>
-          <Link href="/members" className="rounded border border-gray-300 px-3 py-1.5">
+
+        <div className="flex gap-2 border-t border-rule pt-4">
+          <button className={buttonClass("primary")}>Register</button>
+          <Link href="/members" className={buttonClass("secondary")}>
             Cancel
           </Link>
         </div>

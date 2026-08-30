@@ -1,8 +1,17 @@
 import Link from "next/link";
 
+import { DisclosureRow } from "@/components/ui/disclosure-row";
+import { DetailItem } from "@/components/ui/detail";
+import { Search } from "@/components/ui/icons";
+import { StatusBadge } from "@/components/ui/status";
+import { EmptyRow, Num, Table, Td, Th } from "@/components/ui/table";
+import { buttonClass } from "@/components/ui/button";
+import { fieldClass } from "@/components/ui/field";
 import { api } from "@/lib/api";
-import { money, statusClass } from "@/lib/format";
+import { money } from "@/lib/format";
 import type { MemberListItem, Page } from "@/lib/types";
+
+const COLS = 4;
 
 export default async function MembersPage({
   searchParams,
@@ -16,68 +25,104 @@ export default async function MembersPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Members</h1>
-        <Link
-          href="/members/new"
-          className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-medium tracking-tight">Members</h1>
+        <Link href="/members/new" className={buttonClass("primary")}>
           Register member
         </Link>
       </div>
 
-      <form className="mt-4 flex gap-2" action="/members">
-        <input
-          name="q"
-          defaultValue={sp.q ?? ""}
-          aria-label="Search members"
-          placeholder="Search name, phone, or member code…"
-          className="w-72 rounded border border-gray-300 px-3 py-1.5 text-sm"
-        />
-        <button className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100">
-          Search
-        </button>
+      <form className="mt-6 flex gap-2" action="/members">
+        <div className="relative w-full max-w-sm">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint">
+            <Search />
+          </span>
+          <input
+            name="q"
+            defaultValue={sp.q ?? ""}
+            aria-label="Search members"
+            placeholder="Search name, phone, or member code…"
+            className={`${fieldClass} mt-0 pl-9`}
+          />
+        </div>
+        <button className={buttonClass("secondary")}>Search</button>
       </form>
 
-      {sp.ok && <p className="mt-3 rounded bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{sp.ok}</p>}
-      {sp.error && <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{sp.error}</p>}
+      {sp.ok && (
+        <p className="mt-4 border-l-2 border-ink bg-paper-muted px-3 py-2 text-sm">{sp.ok}</p>
+      )}
+      {sp.error && (
+        <p className="mt-4 border-l-2 border-flag bg-paper-muted px-3 py-2 text-sm text-flag">
+          {sp.error}
+        </p>
+      )}
 
-      <table className="mt-4 w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-            <th className="py-2">Code</th>
-            <th className="py-2">Name</th>
-            <th className="py-2">Phone</th>
-            <th className="py-2">Status</th>
-            <th className="py-2">Active loan</th>
-            <th className="py-2 text-right">Outstanding</th>
-          </tr>
-        </thead>
-        <tbody>
-          {page.items.map((m) => (
-            <tr key={m.id} className="border-b border-gray-100">
-              <td className="py-2 font-mono text-xs">{m.member_code}</td>
-              <td className="py-2">{m.full_name}</td>
-              <td className="py-2">{m.phone}</td>
-              <td className="py-2">
-                <span className={`rounded-full px-2 py-0.5 text-xs ${statusClass(m.status)}`}>
-                  {m.status}
-                </span>
-              </td>
-              <td className="py-2 font-mono text-xs">{m.active_loan_code ?? "—"}</td>
-              <td className="py-2 text-right tabular-nums">{money(m.outstanding)}</td>
-            </tr>
-          ))}
-          {page.items.length === 0 && (
+      <div className="mt-6">
+        <Table className="min-w-[28rem]">
+          <thead>
             <tr>
-              <td colSpan={6} className="py-6 text-center text-gray-400">
-                No members match.
-              </td>
+              <Th>Member</Th>
+              <Th>Status</Th>
+              <Th align="right">Outstanding</Th>
+              <Th />
             </tr>
-          )}
-        </tbody>
-      </table>
-      <p className="mt-2 text-xs text-gray-400">{page.total} total</p>
+          </thead>
+          <tbody>
+            {page.items.map((m) => (
+              <DisclosureRow
+                key={m.id}
+                cols={COLS}
+                label={`member ${m.member_code}`}
+                detail={
+                  <dl className="grid max-w-2xl gap-x-10 sm:grid-cols-2">
+                    <DetailItem label="Phone" value={m.phone} />
+                    <DetailItem
+                      label="Active loan"
+                      value={
+                        m.active_loan_code ? (
+                          <Link
+                            href={`/loans?q=${m.active_loan_code}`}
+                            className="font-mono underline underline-offset-4 hover:no-underline"
+                          >
+                            {m.active_loan_code}
+                          </Link>
+                        ) : (
+                          "—"
+                        )
+                      }
+                    />
+                    <DetailItem
+                      label="All loans"
+                      value={
+                        <Link
+                          href={`/loans?q=${m.member_code}`}
+                          className="underline underline-offset-4 hover:no-underline"
+                        >
+                          View
+                        </Link>
+                      }
+                    />
+                  </dl>
+                }
+              >
+                <Td>
+                  <span className="whitespace-nowrap text-ink">{m.full_name}</span>
+                  <span className="mt-0.5 block whitespace-nowrap font-mono text-micro text-ink-faint">
+                    {m.member_code}
+                  </span>
+                </Td>
+                <Td>
+                  <StatusBadge status={m.status} />
+                </Td>
+                <Num>{money(m.outstanding)}</Num>
+              </DisclosureRow>
+            ))}
+            {page.items.length === 0 && <EmptyRow cols={COLS}>No members match.</EmptyRow>}
+          </tbody>
+        </Table>
+      </div>
+
+      <p className="mt-3 text-micro uppercase text-ink-faint">{page.total} total</p>
     </div>
   );
 }
