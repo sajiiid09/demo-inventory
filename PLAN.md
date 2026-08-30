@@ -33,6 +33,12 @@ deviations from the plan above, agreed before implementation began:
    the FastAPI lifespan, idempotently, with a switch per step. `seed.py` stayed
    as a CLI wrapper; the data moved to `app/seeds.py` so the app can import it.
    Covered by `tests/api/test_bootstrap.py`.
+6. **The native Postgres on port 5432 is the default target**, not the container.
+   The demo database sits in the developer's normal server list, next to their
+   other databases, and is browsable in pgAdmin/DBeaver without a second
+   connection. Docker Compose still works and still publishes its own Postgres
+   on 5433 — deviation 4 above — so the two servers never collide; they simply
+   hold separate copies of the data.
 
 ---
 

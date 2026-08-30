@@ -9,6 +9,7 @@
 import { useState } from "react";
 
 import { createLoan } from "@/lib/actions";
+import { apiBaseUrl } from "@/lib/api-url";
 import type { MemberListItem, Preview } from "@/lib/types";
 import { money } from "@/lib/format";
 
@@ -37,7 +38,7 @@ export function LoanForm({ members }: { members: MemberListItem[] }) {
     setPreviewError(null);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/loans/preview`,
+        `${apiBaseUrl()}/loans/preview`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

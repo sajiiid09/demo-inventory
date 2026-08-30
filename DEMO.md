@@ -301,7 +301,7 @@ This is the part that separates the demo from a screenshot. Open **DBeaver** or 
 
 | Host | Port | Database | User | Password |
 |---|---|---|---|---|
-| `localhost` | `5433` | `microloan` | `microloan` | `microloan` |
+| `localhost` | `5432` | `microloan` | `microloan` | `123` |
 
 (Click-path for both tools: [DATABASE.md](DATABASE.md) §8.)
 
@@ -326,7 +326,7 @@ an ORM setting. **A superuser with a SQL client cannot quietly alter the payment
 ### 4.2 Prove the books balance
 
 ```bash
-docker compose exec -T postgres psql -U microloan -d microloan -f - < api/scripts/check_invariants.sql
+psql -d microloan -f api/scripts/check_invariants.sql
 ```
 
 ```

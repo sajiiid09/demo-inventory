@@ -69,43 +69,27 @@ Everything else is machinery around those numbers.
 
 ## Running it
 
-**Prerequisites:** Docker and Docker Compose. (Node 20 and Python 3.12 only if you want to
-run the apps outside containers.)
+Two ways. **Running it natively is the default** — the apps run on your machine against the
+Postgres you already have, which is what you want for hands-on QA. Docker Compose is there
+for a one-command demo on a machine with nothing installed.
+
+### Natively (the default)
+
+**Prerequisites:** PostgreSQL 16+ running locally, Python 3.12, Node 20.
+
+**One-time setup** — a role for the app on your Postgres. It gets `CREATEDB` so the API can
+provision its own database on startup; you never create the database by hand:
 
 ```bash
-cp .env.example .env
-docker compose up
+psql -d postgres -c "CREATE ROLE microloan LOGIN PASSWORD '123' CREATEDB;"
 ```
 
-That is the whole procedure. **Starting the API creates the database, creates every table,
-and loads the demo data** — there is no migrate step and no seed step to remember (ADR-018).
-The boot says what it did:
+(Use whatever superuser access your install has — `psql -d postgres` if your OS user is a
+superuser, otherwise `sudo -u postgres psql`.)
 
-```
-api-1  | INFO:     created database 'microloan'
-api-1  | INFO:     schema is at revision 0001
-api-1  | INFO:     seed: 3 staff logins · 20 members (1 INACTIVE) · 8 loans in every status …
-api-1  | INFO:     Application startup complete.
-```
-
-Restart it and every step finds nothing to do. Each one can be switched off
-(`AUTO_CREATE_DATABASE`, `AUTO_MIGRATE`, `AUTO_SEED`) for an environment that provisions its
-database elsewhere — see [DATABASE.md](DATABASE.md) §7.
-
-| Service | URL |
-|---|---|
-| Web app | http://localhost:3000 |
-| API docs (Swagger) | http://localhost:8000/docs |
-| Postgres | `localhost:5433` (5432 is left free for any local Postgres), database `microloan` |
-
-### Running the pieces separately (for QA)
-
-For hands-on testing it is easier to run the API and the web app yourself, with only Postgres
-in a container — you get reloads, real stack traces, and Swagger on a server you control.
+Then, in two terminals:
 
 ```bash
-docker compose up -d postgres      # the database only
-
 # terminal 1 — backend
 cd api
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
@@ -117,22 +101,84 @@ npm install
 npm run dev
 ```
 
-No `.env` is needed for this: the built-in defaults already point at
-`localhost:5433/microloan`, and the frontend defaults to `http://localhost:8000`. The same
-startup bootstrap runs, so the backend still creates and migrates its own database:
+**No `.env` needed.** The built-in defaults already point at
+`postgresql+psycopg://microloan:123@localhost:5432/microloan`, and the frontend defaults to
+`http://localhost:8000`.
+
+**Starting the API creates the database, creates every table, and loads the demo data** —
+there is no migrate step and no seed step to remember (ADR-018). The first boot says so:
+
+```
+INFO:     created database 'microloan'
+INFO:     schema is at revision 0001
+INFO:     seed: 3 staff logins · 20 members (1 INACTIVE) · 8 loans in every status …
+INFO:     Application startup complete.
+```
+
+Restart it and every step finds nothing to do:
 
 ```
 INFO:     schema is at revision 0001
 INFO:     seed: 3 staff logins verified; portfolio already present
-INFO:     Application startup complete.
 ```
 
-If the API and the web app are already running in containers, stop just those two and leave
-the database up:
+Each step can be switched off (`AUTO_CREATE_DATABASE`, `AUTO_MIGRATE`, `AUTO_SEED`) for an
+environment that provisions its database elsewhere — see [DATABASE.md](DATABASE.md) §7.
+
+The `microloan` database now sits in your normal server list, next to whatever else you have
+there, and is browsable in pgAdmin or DBeaver on the usual port — see below.
+
+### Opening it from another device on your network
+
+The dev servers are reachable over the LAN, but the API has to be told to listen on more
+than loopback — `uvicorn` binds `127.0.0.1` by default, so the app would load and the login
+would fail:
 
 ```bash
-docker compose stop api web
+.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+Nothing else to configure. The browser works out the API address from the page's own
+hostname (`web/lib/api-url.ts`), so opening `http://192.168.1.20:3000` calls
+`http://192.168.1.20:8000` rather than the viewer's own machine. The API accepts loopback and
+private-LAN origins for CORS, and the Next dev server allows this machine's own addresses,
+which it looks up at startup so a new DHCP lease does not break it.
+
+Both are overridable — `CORS_ORIGINS` / `CORS_ORIGIN_REGEX` on the API, `NEXT_DEV_ORIGINS`
+on the web app, and `NEXT_PUBLIC_API_URL` to point the browser somewhere else entirely.
+
+> The LAN defaults are a **development** convenience. `CORS_ORIGIN_REGEX` matches private
+> address ranges only — it is no use to anything off your network — but narrow it, or set it
+> empty, for anything beyond local development.
+
+### Under Docker Compose (the zero-install demo)
+
+**Prerequisites:** Docker and Docker Compose, nothing else.
+
+```bash
+cp .env.example .env
+docker compose up
+```
+
+Same bootstrap, same result — but this brings **its own Postgres**, published on **5433**
+rather than 5432 so it cannot collide with the native server. Its data lives in a Docker
+volume and is separate from the native database; nothing you do in one shows up in the other.
+
+To run the apps natively but keep the database in a container, start only that service and
+set `DATABASE_URL` to the 5433 port:
+
+```bash
+docker compose up -d postgres
+DATABASE_URL=postgresql+psycopg://microloan:123@localhost:5433/microloan \
+  .venv/bin/uvicorn app.main:app --reload --port 8000
+```
+
+| Service | URL |
+|---|---|
+| Web app | http://localhost:3000 |
+| API docs (Swagger) | http://localhost:8000/docs |
+| Postgres (native) | `localhost:5432`, database `microloan` |
+| Postgres (compose) | `localhost:5433`, database `microloan` |
 
 ### Testing the API from Swagger
 
@@ -172,11 +218,16 @@ each role would meet it.
 
 ### Looking at the database in pgAdmin or DBeaver
 
-Postgres is published on the host, so any client connects straight to it:
+`microloan` is an ordinary database on your local server, so it appears in the connection you
+already use — alongside your other databases. No new connection needed if you have one:
 
 | Host | Port | Database | User | Password |
 |---|---|---|---|---|
-| `localhost` | `5433` | `microloan` | `microloan` | `microloan` |
+| `localhost` | `5432` | `microloan` | `microloan` | `123` |
+
+You can also browse it as your own superuser (`psql -d microloan`) rather than as the app's
+role. If you are running the Compose stack instead, everything above is the same but on port
+**5433** — a separate server with a separate copy of the data.
 
 [DATABASE.md](DATABASE.md) §8 has the click-path for both tools and a short list of things
 worth opening — the partial unique index that *is* the one-active-loan rule, and the triggers
@@ -184,13 +235,17 @@ that make the ledger append-only.
 
 ### Starting over
 
+Drop the database and let the next boot rebuild it:
+
 ```bash
-docker compose down -v && docker compose up
+psql -d postgres -c "DROP DATABASE microloan WITH (FORCE);"
+.venv/bin/uvicorn app.main:app --port 8000      # recreates, migrates, reseeds
 ```
 
-The `-v` drops the Postgres volume; the next boot rebuilds and reseeds from nothing. (The
-demo portfolio is never re-applied on top of itself — the ledger is append-only, so a reset
-means a clean database.)
+Under Compose, drop the volume instead: `docker compose down -v && docker compose up`.
+
+Either way the reset is a *clean* database. The demo portfolio is never re-applied on top of
+itself — the ledger is append-only, so there is no delete-and-reinsert path, by design.
 
 ### Running the tests
 
@@ -199,22 +254,25 @@ cd api && pytest              # everything: domain + API integration
 cd api && pytest tests/domain # the arithmetic alone — fast, no database
 ```
 
-Or against the running stack, without a local Python at all:
+The API suite creates and migrates a throwaway `microloan_test` database once per session
+on whatever `DATABASE_URL` points at — your native server by default — then builds its own
+data through the API. It drops and recreates that database on every run and never touches
+`microloan`.
+
+The same suite runs inside the Compose stack, with no local Python at all:
 
 ```bash
 docker compose exec api pytest
 ```
 
-The API suite creates and migrates a throwaway `microloan_test` database once per session
-(on whatever `DATABASE_URL` points at), then builds its own data through the API.
-
 ### Verifying the books balance
 
 ```bash
-docker compose exec -T postgres psql -U microloan -d microloan -f - < api/scripts/check_invariants.sql
+psql -d microloan -f api/scripts/check_invariants.sql
 ```
 
-Every violations count must be `0`.
+Every violations count must be `0`. Under Compose:
+`docker compose exec -T postgres psql -U microloan -d microloan -f - < api/scripts/check_invariants.sql`
 
 ---
 

@@ -381,16 +381,20 @@ cd api && alembic downgrade base && alembic upgrade head && python seed.py
 
 ## 8. Browsing the database in pgAdmin or DBeaver
 
-The Postgres container publishes port **5433** on the host (5432 is deliberately left free
-for any local Postgres you already run), so any client connects to it directly.
+The database lives on **the Postgres installed on this machine, port 5432**, so the
+`microloan` database sits in the same server list as everything else you already have. Any
+client connects to it directly — no container involved.
+
+(Running the stack under Docker Compose instead? That brings its own Postgres, published on
+**5433** so the two never collide. Same credentials, different port.)
 
 | Field | Value |
 |---|---|
 | Host | `localhost` |
-| Port | `5433` |
+| Port | `5432` |
 | Database | `microloan` |
 | Username | `microloan` |
-| Password | `microloan` |
+| Password | `123` |
 | SSL mode | `disable` / `prefer` (it is a local container) |
 
 **DBeaver:** Database → New Database Connection → PostgreSQL → fill in the table above →
@@ -416,5 +420,8 @@ cannot show:
 No psql needed, but if you prefer it:
 
 ```bash
-docker compose exec postgres psql -U microloan -d microloan
+psql -d microloan
 ```
+
+(Under Docker Compose, the same thing is
+`docker compose exec postgres psql -U microloan -d microloan`.)

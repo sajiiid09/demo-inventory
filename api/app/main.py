@@ -54,6 +54,11 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    # Credentials are cookies here, so the origin must be echoed exactly —
+    # a wildcard would be rejected by the browser. The regex covers loopback
+    # and private LAN addresses so the app also works when opened over the
+    # network; see cors_origin_regex in app/config.py.
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
