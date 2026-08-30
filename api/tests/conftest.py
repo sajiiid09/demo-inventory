@@ -22,7 +22,7 @@ TEST_DB = "microloan_test"
 _source_url = make_url(
     os.environ.get(
         "DATABASE_URL",
-        "postgresql+psycopg://microloan:microloan@localhost:5433/microloan",
+        "postgresql+psycopg://microloan:123@localhost:5433/microloan",
     )
 )
 os.environ["DATABASE_URL"] = _source_url.set(database=TEST_DB).render_as_string(

@@ -176,7 +176,7 @@ Postgres is published on the host, so any client connects straight to it:
 
 | Host | Port | Database | User | Password |
 |---|---|---|---|---|
-| `localhost` | `5433` | `microloan` | `microloan` | `microloan` |
+| `localhost` | `5433` | `microloan` | `microloan` | `123` |
 
 [DATABASE.md](DATABASE.md) §8 has the click-path for both tools and a short list of things
 worth opening — the partial unique index that *is* the one-active-loan rule, and the triggers

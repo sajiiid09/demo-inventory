@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://microloan:microloan@localhost:5433/microloan"
+    database_url: str = "postgresql+psycopg://microloan:123@localhost:5433/microloan"
     jwt_secret: str = "dev-only-secret-please-change-me-32-bytes"
     jwt_algorithm: str = "HS256"
     session_hours: int = 8

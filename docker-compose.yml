@@ -7,7 +7,7 @@ services:
     image: postgres:18
     environment:
       POSTGRES_USER: microloan
-      POSTGRES_PASSWORD: microloan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123}
       POSTGRES_DB: microloan
     ports:
       - "5433:5432"   # 5432 is often taken by a local Postgres; 5433 avoids the clash
@@ -23,7 +23,7 @@ services:
   api:
     build: ./api
     environment:
-      DATABASE_URL: postgresql+psycopg://microloan:microloan@postgres:5432/microloan
+      DATABASE_URL: postgresql+psycopg://microloan:${POSTGRES_PASSWORD:-123}@postgres:5432/microloan
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change-me-32-bytes}
       CORS_ORIGINS: http://localhost:3000
     ports:

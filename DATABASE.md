@@ -390,7 +390,7 @@ for any local Postgres you already run), so any client connects to it directly.
 | Port | `5433` |
 | Database | `microloan` |
 | Username | `microloan` |
-| Password | `microloan` |
+| Password | `123` |
 | SSL mode | `disable` / `prefer` (it is a local container) |
 
 **DBeaver:** Database → New Database Connection → PostgreSQL → fill in the table above →

@@ -301,7 +301,7 @@ This is the part that separates the demo from a screenshot. Open **DBeaver** or 
 
 | Host | Port | Database | User | Password |
 |---|---|---|---|---|
-| `localhost` | `5433` | `microloan` | `microloan` | `microloan` |
+| `localhost` | `5433` | `microloan` | `microloan` | `123` |
 
 (Click-path for both tools: [DATABASE.md](DATABASE.md) §8.)
 
