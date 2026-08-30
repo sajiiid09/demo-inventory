@@ -1,15 +1,16 @@
 """Application settings, read from the environment (or a local .env file).
 
-Defaults match local native development: Postgres on localhost:5433 (the port
-docker-compose publishes). Inside docker compose the service environment
-overrides DATABASE_URL to reach the `postgres` container directly.
+Defaults match local native development: the Postgres installed on this
+machine, on localhost:5432. Docker Compose is the alternative — it publishes
+its own Postgres on 5433 to avoid clashing with the native one, and its api
+service overrides DATABASE_URL to reach the `postgres` container directly.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+psycopg://microloan:123@localhost:5433/microloan"
+    database_url: str = "postgresql+psycopg://microloan:123@localhost:5432/microloan"
     jwt_secret: str = "dev-only-secret-please-change-me-32-bytes"
     jwt_algorithm: str = "HS256"
     session_hours: int = 8
