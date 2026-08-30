@@ -1,16 +1,27 @@
 import { notFound } from "next/navigation";
 
+import { buttonClass } from "@/components/ui/button";
+import { DetailItem, DetailSection, FactList } from "@/components/ui/detail";
+import { DisclosureRow } from "@/components/ui/disclosure-row";
+import { fieldClass } from "@/components/ui/field";
+import { Meter } from "@/components/ui/meter";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusBadge } from "@/components/ui/status";
+import { Num, Table, Td, Th } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api";
+import { approveLoan, disburseLoan, recordRepayment, rejectLoan } from "@/lib/actions";
 import {
-  approveLoan,
-  disburseLoan,
-  recordRepayment,
-  rejectLoan,
-} from "@/lib/actions";
-import { money, statusClass } from "@/lib/format";
-import type { LoanDetail, SettlementQuote, User } from "@/lib/types";
+  formatDate,
+  formatDateShort,
+  isOverdue,
+  money,
+  num,
+  relativeDate,
+  todayISO,
+} from "@/lib/format";
+import type { LoanDetail, ScheduleRow, SettlementQuote, User } from "@/lib/types";
 
-const field = "mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm";
+const SCHEDULE_COLS = 6;
 
 export default async function LoanDetailPage({
   params,
@@ -41,42 +52,51 @@ export default async function LoanDetailPage({
 
   const isCreator = loan.people.created_by.startsWith(me.full_name);
 
+  // One clock reading for the whole page, so every relative string agrees.
+  const now = new Date();
+  const paidCount = loan.schedule.filter((r) => r.status === "PAID").length;
+
   return (
     <div>
-      <div className="flex items-center gap-3">
-        <h1 className="font-mono text-lg font-semibold">{loan.loan_code}</h1>
-        <span className={`rounded-full px-2 py-0.5 text-xs ${statusClass(loan.status)}`}>
-          {loan.status}
-        </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-mono text-lg font-medium tracking-tight">{loan.loan_code}</h1>
+        <StatusBadge status={loan.status} />
       </div>
-      <p className="mt-1 text-sm text-gray-500">
-        {loan.member.full_name} · {loan.member.member_code}
+      <p className="mt-1.5 text-sm text-ink-muted">
+        {loan.member.full_name}{" "}
+        <span className="font-mono text-micro text-ink-faint">{loan.member.member_code}</span>
       </p>
 
       {sp.error && (
-        <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{sp.error}</p>
+        <p className="mt-4 border-l-2 border-flag bg-paper-muted px-3 py-2 text-sm text-flag">
+          {sp.error}
+        </p>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Card label="Principal" value={money(loan.terms.principal)} />
-        <Card
+      <div className="mt-8 grid grid-cols-2 gap-px border border-rule bg-rule md:grid-cols-4">
+        <StatCard label="Principal" value={money(loan.terms.principal)} />
+        <StatCard
           label="Total payable"
           value={money(loan.totals.total_payable)}
-          hint={loan.totals.total_interest ? `incl. ${money(loan.totals.total_interest)} interest` : "frozen at disbursement"}
+          hint={
+            loan.totals.total_interest
+              ? `incl. ${money(loan.totals.total_interest)} interest`
+              : "frozen at disbursement"
+          }
         />
-        <Card
+        <StatCard
           label="Paid so far"
           value={money(loan.totals.paid_total)}
           hint="principal + interest + fees"
         />
-        <Card
+        <StatCard
           label="Outstanding"
           value={money(loan.totals.outstanding)}
           hint={`+ ${money(loan.totals.accrued_fees)} fees accrued`}
         />
       </div>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
         <FactList
           title="Terms"
           rows={[
@@ -89,9 +109,9 @@ export default async function LoanDetailPage({
         <FactList
           title="Dates"
           rows={[
-            ["Applied", loan.dates.applied_on],
-            ["Disbursed", loan.dates.disbursed_on ?? "—"],
-            ["Closed", loan.dates.closed_at?.slice(0, 10) ?? "—"],
+            ["Applied", formatDateShort(loan.dates.applied_on)],
+            ["Disbursed", formatDateShort(loan.dates.disbursed_on)],
+            ["Closed", formatDateShort(loan.dates.closed_at?.slice(0, 10))],
           ]}
         />
         <FactList
@@ -107,48 +127,147 @@ export default async function LoanDetailPage({
       <Actions loan={loan} me={me} isCreator={isCreator} quote={quote} />
 
       {loan.schedule.length > 0 && (
-        <>
-          <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Schedule
-          </h2>
-          <table className="mt-2 w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
-                <th className="py-2">#</th>
-                <th className="py-2">Due</th>
-                <th className="py-2 text-right">Principal due</th>
-                <th className="py-2 text-right">Interest due</th>
-                <th className="py-2 text-right">Amount due</th>
-                <th className="py-2 text-right">Paid</th>
-                <th className="py-2 text-right">Fee owed</th>
-                <th className="py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loan.schedule.map((r) => (
-                <tr key={r.seq} className="border-b border-gray-100">
-                  <td className="py-1.5">{r.seq}</td>
-                  <td className="py-1.5">{r.due_date}</td>
-                  <td className="py-1.5 text-right tabular-nums">{money(r.principal_due)}</td>
-                  <td className="py-1.5 text-right tabular-nums">{money(r.interest_due)}</td>
-                  <td className="py-1.5 text-right tabular-nums">{money(r.amount_due)}</td>
-                  <td className="py-1.5 text-right tabular-nums">
-                    {money(String(parseFloat(r.principal_paid) + parseFloat(r.interest_paid)))}
-                  </td>
-                  <td className="py-1.5 text-right tabular-nums">{money(r.accrued_fee)}</td>
-                  <td className="py-1.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${statusClass(r.status)}`}
-                    >
-                      {r.status}
-                    </span>
-                  </td>
+        <section className="mt-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-micro uppercase text-ink-muted">Schedule</h2>
+            <p className="text-micro uppercase text-ink-faint">
+              {loan.schedule.length} installments · {paidCount} paid
+            </p>
+          </div>
+
+          <div className="mt-3">
+            <Table className="min-w-[34rem]">
+              <thead>
+                <tr>
+                  <Th className="w-12">#</Th>
+                  <Th>Due</Th>
+                  <Th align="right">Amount due</Th>
+                  <Th align="right" className="hidden sm:table-cell">
+                    Paid
+                  </Th>
+                  <Th>Status</Th>
+                  <Th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+              </thead>
+              <tbody>
+                {loan.schedule.map((r) => (
+                  <ScheduleLine key={r.seq} row={r} now={now} />
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </section>
       )}
+    </div>
+  );
+}
+
+function ScheduleLine({ row, now }: { row: ScheduleRow; now: Date }) {
+  const paid = num(row.principal_paid) + num(row.interest_paid);
+  const due = num(row.amount_due);
+  const overdue = isOverdue(row, now);
+
+  return (
+    <DisclosureRow
+      cols={SCHEDULE_COLS}
+      label={`installment ${row.seq}`}
+      detail={<ScheduleDetail row={row} paid={paid} />}
+    >
+      <Td className="tnum text-ink-faint">{String(row.seq).padStart(2, "0")}</Td>
+      <Td>
+        <span className="whitespace-nowrap tnum">{formatDate(row.due_date)}</span>
+        <span className="mt-0.5 block text-micro text-ink-faint">
+          {relativeDate(row.due_date, now)}
+        </span>
+      </Td>
+      <Num>{money(row.amount_due)}</Num>
+      <Num className="hidden sm:table-cell">
+        {money(paid)}
+        <Meter
+          className="mt-1.5"
+          value={paid}
+          total={due}
+          label={`${money(paid)} of ${money(row.amount_due)} paid`}
+        />
+      </Num>
+      <Td>
+        <StatusBadge status={overdue ? "OVERDUE" : row.status} />
+      </Td>
+    </DisclosureRow>
+  );
+}
+
+/**
+ * Everything the resting row leaves out — including two things the UI never
+ * showed at all: `fee_paid`, and the per-receipt `allocations` the API has always
+ * sent but the TypeScript interface used to drop.
+ */
+function ScheduleDetail({ row, paid }: { row: ScheduleRow; paid: number }) {
+  const principalOwed = num(row.principal_due) - num(row.principal_paid);
+  const interestOwed = num(row.interest_due) - num(row.interest_paid);
+
+  return (
+    <div className="grid gap-8 md:grid-cols-2">
+      <DetailSection title="Breakdown">
+        <dl>
+          <DetailItem
+            label="Principal"
+            value={`${money(row.principal_due)} · paid ${money(row.principal_paid)}`}
+          />
+          <DetailItem
+            label="Interest"
+            value={`${money(row.interest_due)} · paid ${money(row.interest_paid)}`}
+          />
+          <DetailItem
+            label="Late fee"
+            value={`${money(row.accrued_fee)} owed · paid ${money(row.fee_paid)}`}
+          />
+          <DetailItem
+            label="Still owed"
+            value={money(principalOwed + interestOwed)}
+            strong
+          />
+        </dl>
+        <p className="mt-2 text-micro text-ink-faint">
+          Accrued fees sit outside outstanding — a fee is not a receivable until it is
+          charged (DOMAIN.md §1).
+        </p>
+      </DetailSection>
+
+      <DetailSection title={`Repayments (${row.allocations.length})`}>
+        {row.allocations.length === 0 ? (
+          <p className="border border-dashed border-rule px-3 py-4 text-xs text-ink-faint">
+            Nothing has been allocated to this installment yet.
+          </p>
+        ) : (
+          <div className="border border-rule">
+            <div className="grid grid-cols-4 gap-2 border-b border-rule bg-paper-muted px-3 py-1.5 text-micro uppercase text-ink-faint">
+              <span>Receipt</span>
+              <span className="text-right">Fee</span>
+              <span className="text-right">Interest</span>
+              <span className="text-right">Principal</span>
+            </div>
+            {row.allocations.map((a) => (
+              <div
+                key={a.receipt_no}
+                className="grid grid-cols-4 gap-2 border-b border-rule px-3 py-2 text-xs last:border-b-0"
+              >
+                <span className="font-mono">{a.receipt_no}</span>
+                <span className="text-right tnum">{money(a.fee)}</span>
+                <span className="text-right tnum">{money(a.interest)}</span>
+                <span className="text-right tnum">{money(a.principal)}</span>
+              </div>
+            ))}
+            <div className="grid grid-cols-4 gap-2 border-t border-ink px-3 py-2 text-xs font-medium">
+              <span className="uppercase text-ink-muted">Total</span>
+              <span className="col-span-3 text-right tnum">{money(paid + num(row.fee_paid))}</span>
+            </div>
+          </div>
+        )}
+        <p className="mt-2 text-micro text-ink-faint">
+          Every payment is applied fee → interest → principal (DOMAIN.md §3).
+        </p>
+      </DetailSection>
     </div>
   );
 }
@@ -174,102 +293,90 @@ function Actions({
   if (!canApprove && !canReject && !canDisburse && !canCollect) return null;
 
   return (
-    <div className="mt-6 flex flex-wrap items-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
-      {canApprove && (
-        <form action={approveLoan}>
-          <input type="hidden" name="loan_id" value={loan.id} />
-          <button className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500">
-            Approve
-          </button>
-        </form>
-      )}
+    <div className="mt-6 border border-rule bg-paper p-5">
+      <p className="text-micro uppercase text-ink-muted">Actions</p>
+
+      <div className="mt-4 flex flex-wrap items-start gap-x-8 gap-y-5">
+        {canApprove && (
+          <form action={approveLoan}>
+            <input type="hidden" name="loan_id" value={loan.id} />
+            <button className={buttonClass("primary")}>Approve</button>
+          </form>
+        )}
+
+        {canDisburse && (
+          <form action={disburseLoan} className="flex items-end gap-2">
+            <input type="hidden" name="loan_id" value={loan.id} />
+            <label className="block">
+              <span className="text-micro uppercase text-ink-muted">Disburse on</span>
+              <input
+                name="disbursed_on"
+                type="date"
+                required
+                defaultValue={todayISO()}
+                className={`${fieldClass} w-44`}
+              />
+            </label>
+            <button className={buttonClass("primary")}>Disburse</button>
+          </form>
+        )}
+
+        {canCollect && quote && (
+          <form action={recordRepayment} className="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="loan_id" value={loan.id} />
+            <label className="block">
+              <span className="text-micro uppercase text-ink-muted">Amount</span>
+              <input
+                name="amount"
+                required
+                defaultValue={quote.settlement_total}
+                className={`${fieldClass} w-36 tnum`}
+              />
+            </label>
+            <label className="block">
+              <span className="text-micro uppercase text-ink-muted">Paid on</span>
+              <input
+                name="paid_on"
+                type="date"
+                required
+                defaultValue={todayISO()}
+                className={`${fieldClass} w-44`}
+              />
+            </label>
+            <label className="block">
+              <span className="text-micro uppercase text-ink-muted">Method</span>
+              <select name="method" className={`${fieldClass} w-32`}>
+                <option>CASH</option>
+                <option>BANK</option>
+                <option>MOBILE</option>
+              </select>
+            </label>
+            <button className={buttonClass("primary")}>Record repayment</button>
+            <p className="w-full text-micro text-ink-faint">
+              Settlement today {money(quote.settlement_total)} — outstanding{" "}
+              {money(quote.outstanding)} plus {money(quote.accrued_fees)} fees.
+            </p>
+          </form>
+        )}
+      </div>
+
       {canReject && (
-        <form action={rejectLoan} className="flex gap-2">
+        /* Destructive action, separated from the rest by a rule so it is never a mis-click. */
+        <form action={rejectLoan} className="mt-5 flex flex-wrap items-end gap-2 border-t border-rule pt-5">
           <input type="hidden" name="loan_id" value={loan.id} />
-          <input
-            name="reason"
-            required
-            aria-label="Rejection reason"
-            placeholder="Rejection reason…"
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm"
-          />
-          <button className="rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500">
-            Reject
-          </button>
+          <label className="block">
+            <span className="text-micro uppercase text-ink-muted">Rejection reason</span>
+            <input
+              name="reason"
+              required
+              aria-label="Rejection reason"
+              placeholder="Why is this being rejected?"
+              className={`${fieldClass} w-72`}
+            />
+          </label>
+          <button className={buttonClass("danger")}>Reject</button>
         </form>
       )}
-      {canDisburse && (
-        <form action={disburseLoan} className="flex items-end gap-2">
-          <input type="hidden" name="loan_id" value={loan.id} />
-          <label className="text-sm">
-            <span className="text-gray-600">Disburse on</span>
-            <input name="disbursed_on" type="date" required defaultValue={today()} className={field} />
-          </label>
-          <button className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700">
-            Disburse
-          </button>
-        </form>
-      )}
-      {canCollect && quote && (
-        <form action={recordRepayment} className="flex items-end gap-2">
-          <input type="hidden" name="loan_id" value={loan.id} />
-          <label className="text-sm">
-            <span className="text-gray-600">Amount</span>
-            <input name="amount" required defaultValue={quote.settlement_total} className={field} />
-          </label>
-          <label className="text-sm">
-            <span className="text-gray-600">Paid on</span>
-            <input name="paid_on" type="date" required defaultValue={today()} className={field} />
-          </label>
-          <label className="text-sm">
-            <span className="text-gray-600">Method</span>
-            <select name="method" className={field}>
-              <option>CASH</option>
-              <option>BANK</option>
-              <option>MOBILE</option>
-            </select>
-          </label>
-          <button className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700">
-            Record repayment
-          </button>
-          <p className="ml-2 text-xs text-gray-400">
-            settlement today: {money(quote.settlement_total)} (outstanding{" "}
-            {money(quote.outstanding)} + fees {money(quote.accrued_fees)})
-          </p>
-        </form>
-      )}
-    </div>
-  );
-}
-
-// All actions take FormData; hidden inputs carry the loan id.
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function Card({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold tabular-nums">{value}</p>
-      {hint && <p className="mt-0.5 text-[11px] text-gray-400">{hint}</p>}
-    </div>
-  );
-}
-
-function FactList({ title, rows }: { title: string; rows: [string, string][] }) {
-  return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
-      <dl className="mt-2 space-y-1 text-sm">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-4">
-            <dt className="text-gray-500">{k}</dt>
-            <dd className="text-right">{v}</dd>
-          </div>
-        ))}
-      </dl>
     </div>
   );
 }

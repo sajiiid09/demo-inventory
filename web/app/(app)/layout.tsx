@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { NavLink } from "@/components/nav-link";
 import { api, ApiError } from "@/lib/api";
 import { logout } from "@/lib/actions";
 import type { User } from "@/lib/types";
@@ -22,31 +22,44 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-6">
-            <span className="font-semibold">MicroLoan</span>
-            <nav className="flex gap-4 text-sm">
-              {NAV.map((item) => (
-                <Link key={item.href} href={item.href} className="text-gray-600 hover:text-gray-900">
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-gray-500">
-              {user.full_name} · {user.role}
+      {/*
+        Wraps to two rows below sm — identity on top, nav beneath — because the
+        wordmark, three nav items and the user block do not fit 360px on one line.
+      */}
+      <header className="border-b border-rule bg-paper">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-8 px-6 sm:flex-nowrap">
+          <span className="order-1 py-3 font-mono text-sm font-medium uppercase tracking-[0.18em] sm:py-0">
+            MicroLoan
+          </span>
+
+          <nav
+            aria-label="Main"
+            className="order-3 flex w-full gap-6 border-t border-rule sm:order-2 sm:mr-auto sm:w-auto sm:border-t-0"
+          >
+            {NAV.map((item) => (
+              <NavLink key={item.href} href={item.href}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="order-2 flex items-center gap-3 sm:order-3 sm:gap-4">
+            <span className="hidden text-sm text-ink-muted md:inline">{user.full_name}</span>
+            <span className="border border-rule px-2 py-0.5 text-micro uppercase text-ink-muted">
+              {user.role}
             </span>
             <form action={logout}>
-              <button type="submit" className="text-gray-500 hover:text-gray-900">
+              <button
+                type="submit"
+                className="cursor-pointer text-sm text-ink-muted transition-colors duration-150 hover:text-ink"
+              >
                 Sign out
               </button>
             </form>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { api } from "@/lib/api";
 import { LoanForm } from "@/components/loan-form";
+import { api } from "@/lib/api";
 import type { MemberListItem, Page } from "@/lib/types";
 
 export default async function NewLoanPage({
@@ -17,11 +17,19 @@ export default async function NewLoanPage({
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">New loan application</h1>
+      <h1 className="text-xl font-medium tracking-tight">New loan application</h1>
+      <p className="mt-1 text-sm text-ink-muted">
+        The preview writes nothing — it is the same arithmetic the API will freeze at
+        disbursement (ADR-003).
+      </p>
+
       {sp.error && (
-        <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{sp.error}</p>
+        <p className="mt-4 border-l-2 border-flag bg-paper-muted px-3 py-2 text-sm text-flag">
+          {sp.error}
+        </p>
       )}
-      <div className="mt-4">
+
+      <div className="mt-6">
         <LoanForm members={members.items} />
       </div>
     </div>

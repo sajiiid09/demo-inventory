@@ -35,6 +35,14 @@ export interface LoanListItem {
   next_due_date: string | null;
 }
 
+/** One repayment's contribution to one installment (api/app/schemas/loans.py AllocationMini). */
+export interface Allocation {
+  receipt_no: string;
+  fee: string;
+  interest: string;
+  principal: string;
+}
+
 export interface ScheduleRow {
   seq: number;
   due_date: string;
@@ -46,6 +54,12 @@ export interface ScheduleRow {
   fee_paid: string;
   status: "PENDING" | "PARTIAL" | "PAID";
   accrued_fee: string;
+  /**
+   * The API has always sent this — it was simply missing from this interface and
+   * therefore dropped on arrival. Every repayment that touched this installment,
+   * split fee -> interest -> principal.
+   */
+  allocations: Allocation[];
 }
 
 export interface LoanDetail {
