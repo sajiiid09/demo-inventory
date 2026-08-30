@@ -23,6 +23,7 @@
 | [015](#adr-015) | Weekly and monthly frequencies only |
 | [016](#adr-016) | Core identity only on a member record |
 | [017](#adr-017) | A server-rendered Next.js UI, plainly styled |
+| [018](#adr-018) | The API migrates and seeds itself on startup |
 
 ---
 
@@ -428,3 +429,49 @@ exactly one place, and every write goes through one server-actions module with a
 error path. No frontend tests — recorded as a non-goal in
 [ARCHITECTURE.md](../ARCHITECTURE.md) §8, and the reason the API suite covers the rules
 directly.
+
+---
+
+## ADR-018 — The API migrates and seeds itself on startup {#adr-018}
+
+**Context.** Getting the demo running originally took three commands: `docker compose up`,
+then `alembic upgrade head`, then `python seed.py`. Anyone who ran only the first got a
+server that answered `/health` happily and returned `500` on every real request, because the
+database was empty. For a project whose stated goal is "simplicity that can be explained out
+loud", the first thing a reviewer experienced was a broken server and a README step they had
+missed.
+
+**Decision.** Starting the API is the whole procedure. On boot, `app/bootstrap.py` waits for
+Postgres, creates the database if it does not exist, runs `alembic upgrade head`, ensures the
+three staff logins, and loads the demo portfolio if there are no members yet. Every step is
+idempotent and each has its own switch (`AUTO_CREATE_DATABASE`, `AUTO_MIGRATE`, `AUTO_SEED`)
+for an environment that provisions out of band. The steps are logged, so the boot says what
+it did.
+
+**Rejected — `Base.metadata.create_all()` on startup.** The obvious one-liner, and wrong here.
+Three of this schema's most important rules — the append-only triggers, the partial unique
+index behind R2, and the trigram index — exist only in revision `0001_init` and cannot be
+expressed as model declarations (see [DATABASE.md](../DATABASE.md) §4). `create_all()` would
+produce a schema that looks right, passes a smoke test, and quietly lacks every guarantee the
+project claims. Alembic stays the single source of truth for the schema.
+
+**Rejected — an entrypoint shell script running `alembic upgrade head` before uvicorn.** The
+common containerised answer and perfectly sound. Rejected because it only fixes the Docker
+path: someone running `uvicorn app.main:app` natively — the documented development
+workflow — is back to the same empty database, and the logic lives in a shell script that
+neither the tests nor the type checker can see. In Python it is testable, and
+`tests/api/test_bootstrap.py` tests it.
+
+**Rejected — seeding the portfolio on every boot.** Tempting for a demo that should look the
+same every time, but the ledger is append-only by construction (ADR-006), so demo data
+cannot be re-applied over itself. Seeding is therefore split: the staff logins are repaired
+on every boot (an account deactivated or given the wrong role mid-demo comes back correct),
+while the portfolio loads only into a database with no members. Resetting means dropping the
+volume, which is one honest command rather than a delete-and-reinsert path that would have to
+defeat the very triggers the demo is showing off.
+
+**Consequences.** `docker compose up` is the entire runbook, and a native `uvicorn` run
+against a database that does not exist yet provisions one. The startup cost is a few
+milliseconds on an already-migrated database. The test suite sets `AUTO_MIGRATE=false` and
+`AUTO_SEED=false`, because `tests/conftest.py` owns its own throwaway database and the demo
+portfolio would only get in the tests' way.

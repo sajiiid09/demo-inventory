@@ -24,7 +24,7 @@ services:
     build: ./api
     environment:
       DATABASE_URL: postgresql+psycopg://microloan:microloan@postgres:5432/microloan
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change-me-32-bytes}
       CORS_ORIGINS: http://localhost:3000
     ports:
       - "8000:8000"
@@ -40,7 +40,7 @@ services:
     environment:
       API_BASE_URL: http://api:8000          # server-side fetches (Next.js → api container)
       NEXT_PUBLIC_API_URL: http://localhost:8000  # browser fetches (preview widget)
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change-me-32-bytes}
     ports:
       - "3000:3000"
     volumes:

@@ -334,3 +334,87 @@ WHERE l.status = 'DISBURSED';
 - `alembic upgrade head` on an empty database must produce the complete schema. That is the
   exit criterion for phase 1 in [PLAN.md](PLAN.md).
 - Every revision has a working `downgrade()`.
+- **`Base.metadata.create_all()` is never used.** The triggers in §3.1, the partial unique
+  index in §3.2, and the trigram index in §2.2 cannot be expressed as model declarations, so
+  a metadata-built schema would look correct and silently lack all three. Alembic is the only
+  thing that creates this schema — including the copy the API builds for itself on startup,
+  and the throwaway database the test suite builds (ADR-018).
+
+---
+
+## 7. How the schema gets created
+
+Nothing to run by hand: **starting the API creates the database and its tables.**
+`app/bootstrap.py` runs inside the FastAPI lifespan, before the first request is served.
+
+| Step | What it does | Switch | Skipped when |
+|---|---|---|---|
+| 1 | Waits for Postgres to accept connections | — | it already does |
+| 2 | `CREATE DATABASE microloan` | `AUTO_CREATE_DATABASE` | the database exists |
+| 3 | `alembic upgrade head` | `AUTO_MIGRATE` | already at head (a no-op) |
+| 4 | Ensures the three staff logins | `AUTO_SEED` | never — drift is repaired every boot |
+| 5 | Loads the demo portfolio | `AUTO_SEED` | the database already has members |
+
+Each switch is an environment variable, default `true`. Set any of them to `false` in an
+environment that provisions its database out of band. The boot logs what it did:
+
+```
+INFO:     created database 'microloan'
+INFO:     schema is at revision 0001
+INFO:     seed: 3 staff logins · 20 members (1 INACTIVE) · 8 loans in every status …
+```
+
+Step 5 runs only into an empty portfolio because the ledger is append-only (§3.1) — demo
+data cannot be layered on top of itself. To start over:
+
+```bash
+docker compose down -v && docker compose up      # drops the volume, rebuilds everything
+```
+
+Or, against a database you are keeping:
+
+```bash
+cd api && alembic downgrade base && alembic upgrade head && python seed.py
+```
+
+---
+
+## 8. Browsing the database in pgAdmin or DBeaver
+
+The Postgres container publishes port **5433** on the host (5432 is deliberately left free
+for any local Postgres you already run), so any client connects to it directly.
+
+| Field | Value |
+|---|---|
+| Host | `localhost` |
+| Port | `5433` |
+| Database | `microloan` |
+| Username | `microloan` |
+| Password | `microloan` |
+| SSL mode | `disable` / `prefer` (it is a local container) |
+
+**DBeaver:** Database → New Database Connection → PostgreSQL → fill in the table above →
+Test Connection → Finish. The tables are under `microloan ▸ Schemas ▸ public ▸ Tables`.
+
+**pgAdmin:** right-click Servers → Register → Server. On the *General* tab give it a name;
+on the *Connection* tab use the table above. The tables are under
+`Servers ▸ <name> ▸ Databases ▸ microloan ▸ Schemas ▸ public ▸ Tables`.
+
+A few things worth opening once you are connected, because they are the parts a screenshot
+cannot show:
+
+- **`loans` ▸ Constraints** — the five check constraints from §3, including
+  `loans_rejection_has_reason` and `loans_disbursed_after_applied`.
+- **`loans` ▸ Indexes ▸ `one_active_loan_per_member`** — the partial unique index with its
+  `WHERE status IN ('APPROVED','DISBURSED')` clause. This *is* rule R2 (§3.2).
+- **`repayments` ▸ Triggers** — the `BEFORE UPDATE OR DELETE` trigger that makes the ledger
+  physically append-only. Try `UPDATE repayments SET amount = 1;` in a SQL editor and read
+  the error it raises.
+- **`installments`** for one disbursed loan, ordered by `seq` — the schedule, with the last
+  row carrying the rounding remainder (DOMAIN.md §6).
+
+No psql needed, but if you prefer it:
+
+```bash
+docker compose exec postgres psql -U microloan -d microloan
+```

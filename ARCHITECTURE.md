@@ -219,10 +219,12 @@ components, so error handling, cookie forwarding, and the base URL each exist in
 ```
 api/
   app/
-    main.py              FastAPI app, CORS, exception handlers
+    main.py              FastAPI app, CORS, exception handlers, startup lifespan
+    bootstrap.py         startup: create database → alembic upgrade head → seed
     config.py            settings from environment (pydantic-settings)
     db.py                engine, session factory, get_session dependency
     security.py          argon2 hashing, JWT encode/decode, require_role
+    seeds.py             the demo data itself (staff logins + demo portfolio)
     models/              users, members, loans, installments, repayments,
                          repayment_allocations, ledger_entries, audit_log
     schemas/             Pydantic request/response models
@@ -233,8 +235,38 @@ api/
   alembic/versions/      0001_init.py  (+ later migrations)
   tests/domain/          pure-function tests, no database
   tests/api/             integration tests against a throwaway Postgres
-  seed.py                demo users, members, loans in every state
+  seed.py                CLI wrapper around app/seeds.py — seeding by hand
 ```
+
+### Startup — how the database comes to exist
+
+Running the API is the whole procedure (ADR-018). `app/main.py` has a lifespan that calls
+`bootstrap.prepare_database()` before the first request is served:
+
+```
+uvicorn starts
+   │
+   ├─ wait for Postgres to accept connections      (native runs; compose gates on a healthcheck)
+   ├─ CREATE DATABASE microloan   … if missing     AUTO_CREATE_DATABASE
+   ├─ alembic upgrade head        … if behind      AUTO_MIGRATE
+   └─ ensure staff logins, load the portfolio      AUTO_SEED
+      … if the database has no members yet
+   │
+   ▼
+Application startup complete.
+```
+
+Every step is idempotent, so a restart finds nothing to do and says so:
+
+```
+INFO:     schema is at revision 0001
+INFO:     seed: 3 staff logins verified; portfolio already present
+```
+
+The schema is created by **Alembic, never by `Base.metadata.create_all()`** — the
+append-only triggers, the partial unique index behind R2, and the trigram index exist only
+in the migration, so a metadata-built schema would silently lack them
+([DATABASE.md](DATABASE.md) §4).
 
 ---
 

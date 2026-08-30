@@ -23,6 +23,17 @@ deviations from the plan above, agreed before implementation began:
 4. **Postgres is published on host port 5433** (5432 is commonly taken by a
    local Postgres); containers talk internally regardless.
 
+### Added after the plan
+
+5. **The API migrates and seeds itself on startup** (ADR-018). The plan left
+   `alembic upgrade head` and `python seed.py` as two manual steps after
+   `docker compose up`; running only the first left a server that answered
+   `/health` and returned `500` on everything else. `app/bootstrap.py` now runs
+   both — plus `CREATE DATABASE` when the database itself is missing — inside
+   the FastAPI lifespan, idempotently, with a switch per step. `seed.py` stayed
+   as a CLI wrapper; the data moved to `app/seeds.py` so the app can import it.
+   Covered by `tests/api/test_bootstrap.py`.
+
 ---
 
 ## Sequencing principle
