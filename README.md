@@ -128,6 +128,29 @@ environment that provisions its database elsewhere — see [DATABASE.md](DATABAS
 The `microloan` database now sits in your normal server list, next to whatever else you have
 there, and is browsable in pgAdmin or DBeaver on the usual port — see below.
 
+### Opening it from another device on your network
+
+The dev servers are reachable over the LAN, but the API has to be told to listen on more
+than loopback — `uvicorn` binds `127.0.0.1` by default, so the app would load and the login
+would fail:
+
+```bash
+.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Nothing else to configure. The browser works out the API address from the page's own
+hostname (`web/lib/api-url.ts`), so opening `http://192.168.1.20:3000` calls
+`http://192.168.1.20:8000` rather than the viewer's own machine. The API accepts loopback and
+private-LAN origins for CORS, and the Next dev server allows this machine's own addresses,
+which it looks up at startup so a new DHCP lease does not break it.
+
+Both are overridable — `CORS_ORIGINS` / `CORS_ORIGIN_REGEX` on the API, `NEXT_DEV_ORIGINS`
+on the web app, and `NEXT_PUBLIC_API_URL` to point the browser somewhere else entirely.
+
+> The LAN defaults are a **development** convenience. `CORS_ORIGIN_REGEX` matches private
+> address ranges only — it is no use to anything off your network — but narrow it, or set it
+> empty, for anything beyond local development.
+
 ### Under Docker Compose (the zero-install demo)
 
 **Prerequisites:** Docker and Docker Compose, nothing else.

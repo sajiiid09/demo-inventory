@@ -39,7 +39,9 @@ services:
     build: ./web
     environment:
       API_BASE_URL: http://api:8000          # server-side fetches (Next.js → api container)
-      NEXT_PUBLIC_API_URL: http://localhost:8000  # browser fetches (preview widget)
+      # Browser-side fetches (login, live preview) work out the API address from the
+      # page's own hostname, so this only needs setting to override that.
+      # NEXT_PUBLIC_API_URL: http://localhost:8000
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-please-change-me-32-bytes}
     ports:
       - "3000:3000"
